@@ -1,7 +1,7 @@
 @startuml
 title BucketAdapter v6 (Refactor interface)
 
-class BucketAdapterController {
+class BucketController {
 
 }
 
