@@ -6,7 +6,9 @@ import com.bucketadapter.bucketadapterexceptions.BucketOperationException;
 import com.bucketadapter.bucketadapterexceptions.InvalidBucketPathException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkException;
+import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
 
@@ -29,7 +31,54 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
   }
 
   @Override
-  public void upload(String remote, byte[] object) {}
+  public void upload(String remote, byte[] object) {
+
+    if (remote == null || remote.isBlank()) {
+      throw new InvalidBucketPathException("Invalid path.");
+    }
+    if (object == null) {
+      throw new InvalidBucketPathException("Invalid request.");
+    }
+
+    final String bucket;
+    final String key;
+
+    try {
+      String[] arrayRemote = BucketAndPrefix(remote);
+      bucket = arrayRemote[BUCKET];
+      key = arrayRemote[PREFIX];
+    } catch (RuntimeException e) {
+      throw new InvalidBucketPathException("Invalid path.");
+    }
+
+    if (bucket == null || bucket.isBlank() || key == null || key.isBlank() || key.endsWith("/")) {
+      throw new InvalidBucketPathException("Invalid path.");
+    }
+
+    PutObjectRequest req = PutObjectRequest.builder().bucket(bucket).key(key).build();
+
+    try {
+      s3Client.putObject(req, RequestBody.fromBytes(object));
+
+    } catch (NoSuchBucketException e) {
+      throw new BucketObjectNotFoundException("Resource not found.");
+
+    } catch (S3Exception e) {
+      int sc = e.statusCode();
+
+      if (sc == 404) {
+        throw new BucketObjectNotFoundException("Resource not found.");
+      }
+      if (sc == 400) {
+        throw new InvalidBucketPathException("Invalid path.");
+      }
+
+      throw new BucketOperationException("Operation failed.", e);
+
+    } catch (SdkException e) {
+      throw new BucketOperationException("Operation failed.", e);
+    }
+  }
 
   @Override
   public byte[] download(String remote) {
@@ -42,8 +91,9 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
   @Override
   public List<String> list(String remote, boolean recursive) {
 
-    final String bucket;
+    String bucket;
     String prefix;
+
     try {
       String[] arrayRemote = BucketAndPrefix(remote);
       bucket = arrayRemote[BUCKET];
