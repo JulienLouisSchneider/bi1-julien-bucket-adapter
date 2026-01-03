@@ -1,9 +1,11 @@
 package com.bucketadapter;
 
 import com.bucketadapter.adapter.BucketAdapter;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@Service
 public class BucketService {
 
     private final BucketAdapterFactory bucketAdapterFactory;

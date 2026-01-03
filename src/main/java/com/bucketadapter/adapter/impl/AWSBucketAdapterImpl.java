@@ -1,8 +1,10 @@
 package com.bucketadapter.adapter.impl;
 import com.bucketadapter.adapter.BucketAdapter;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+@Component("AWS")
 public class AWSBucketAdapterImpl implements BucketAdapter {
     @Override
     public void upload(String remote, byte[] object) {
@@ -21,7 +23,15 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
 
     @Override
     public List<String> list(String remote, boolean recursive) {
-        return List.of();
+        return List.of(
+                remote + "/",
+                remote + "/README.txt",
+                remote + "/images/logo.png",
+                remote + "/docs/specs.pdf",
+                remote + "/uploads/2026-01-03/report.csv",
+                remote + "/logs/app-2026-01-03.log",
+                remote + "/archive/2025/backup.zip"
+        );
     }
 
     @Override
