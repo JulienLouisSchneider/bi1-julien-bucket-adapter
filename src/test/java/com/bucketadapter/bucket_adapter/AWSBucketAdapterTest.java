@@ -48,7 +48,7 @@ public class AWSBucketAdapterTest {
             .contents(S3Object.builder().key("photos/2024/img-3.jpg").build())
             .build();
 
-    when(paginator.stream()).thenReturn(Stream.of(firstPage, secondPage));
+    when(paginator.iterator()).thenReturn(Stream.of(firstPage, secondPage).iterator());
 
     List<String> keys = adapter.list("archive/photos/2024", true);
 
@@ -74,7 +74,7 @@ public class AWSBucketAdapterTest {
             .contents(S3Object.builder().key("invoice.pdf").build())
             .build();
 
-    when(paginator.stream()).thenReturn(Stream.of(singlePage));
+    when(paginator.iterator()).thenReturn(Stream.of(singlePage).iterator());
 
     List<String> keys = adapter.list("   finance-docs   ", false);
 
@@ -109,7 +109,7 @@ public class AWSBucketAdapterTest {
                 S3Object.builder().key("photos/2024/january/cat.jpg").build())
             .build();
 
-    when(paginator.stream()).thenReturn(Stream.of(firstPage, secondPage));
+    when(paginator.iterator()).thenReturn(Stream.of(firstPage, secondPage).iterator());
 
     List<String> keys = adapter.list("archive/photos/2024", true);
 
@@ -145,7 +145,7 @@ public class AWSBucketAdapterTest {
                 S3Object.builder().key("docs/summary.txt").build())
             .build();
 
-    when(paginator.stream()).thenReturn(Stream.of(singlePage));
+    when(paginator.iterator()).thenReturn(Stream.of(singlePage).iterator());
 
     List<String> keys = adapter.list("company/docs", false);
 
