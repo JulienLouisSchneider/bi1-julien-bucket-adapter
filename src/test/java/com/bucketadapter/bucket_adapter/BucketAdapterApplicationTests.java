@@ -1,4 +1,4 @@
-package com.bucketadapteur.bucket_adapter;
+package com.bucketadapter.bucket_adapter;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

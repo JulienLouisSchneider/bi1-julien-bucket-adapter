@@ -1,4 +1,4 @@
-package com.bucketadapteur.bucket_adapter;
+package com.bucketadapter;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
