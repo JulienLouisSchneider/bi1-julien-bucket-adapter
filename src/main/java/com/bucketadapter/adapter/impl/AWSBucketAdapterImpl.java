@@ -5,9 +5,7 @@ import org.springframework.stereotype.Component;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -39,21 +37,35 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
   @Override
   public List<String> list(String remote, boolean recursive) {
 
-    String[] ArrayRemote = BucketAndPrefix(remote);
+    String[] arrayRemote = BucketAndPrefix(remote);
+    String bucket = arrayRemote[BUCKET];
+    String prefix = arrayRemote[PREFIX];
 
-    String bucket = ArrayRemote[BUCKET];
-    String prefix = ArrayRemote[PREFIX];
+    if (prefix != null && !prefix.isBlank() && !prefix.endsWith("/")) {
+      prefix = prefix + "/";
+    }
 
-    var req =
-        ListObjectsV2Request.builder().bucket(bucket).prefix(prefix == null ? "" : prefix).build();
+    var builder =
+        ListObjectsV2Request.builder().bucket(bucket).prefix(prefix == null ? "" : prefix);
 
-    List<String> keys = new ArrayList<>();
+    if (!recursive) {
+      builder.delimiter("/");
+    }
+
+    var req = builder.build();
+
+    Set<String> results = new LinkedHashSet<>();
 
     s3Client.listObjectsV2Paginator(req).stream()
-        .flatMap(resp -> resp.contents().stream())
-        .forEach(obj -> keys.add(obj.key()));
+        .forEach(
+            resp -> {
+              if (!recursive) {
+                resp.commonPrefixes().forEach(cp -> results.add(cp.prefix()));
+              }
+              resp.contents().forEach(obj -> results.add(obj.key()));
+            });
 
-    return keys;
+    return new ArrayList<>(results);
   }
 
   @Override
