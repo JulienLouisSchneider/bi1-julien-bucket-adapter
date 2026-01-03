@@ -1,21 +1,30 @@
 package com.bucketadapter.bucket_adapter;
 
 import com.bucketadapter.adapter.impl.AWSBucketAdapterImpl;
+import com.bucketadapter.bucketadapterexceptions.BucketObjectNotFoundException;
+import com.bucketadapter.bucketadapterexceptions.InvalidBucketPathException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CommonPrefix;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
+import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Object;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.paginators.ListObjectsV2Iterable;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.stream.Stream;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -160,5 +169,47 @@ public class AWSBucketAdapterTest {
     assertEquals("company", request.bucket());
     assertEquals("docs/", request.prefix());
     assertEquals("/", request.delimiter());
+  }
+
+  @Test
+  void uploadSendsPutObjectRequestForValidRemote() throws IOException {
+    byte[] payload = new byte[] {1, 2, 3, 4};
+
+    adapter.upload("media/photos/hero.jpg", payload);
+
+    ArgumentCaptor<PutObjectRequest> reqCaptor =
+        ArgumentCaptor.forClass(PutObjectRequest.class);
+    ArgumentCaptor<RequestBody> bodyCaptor =
+        ArgumentCaptor.forClass(RequestBody.class);
+    verify(s3Client).putObject(reqCaptor.capture(), bodyCaptor.capture());
+
+    PutObjectRequest request = reqCaptor.getValue();
+    assertEquals("media", request.bucket());
+    assertEquals("photos/hero.jpg", request.key());
+    try (var input = bodyCaptor.getValue().contentStreamProvider().newStream()) {
+      assertArrayEquals(payload, input.readAllBytes());
+    }
+  }
+
+  @Test
+  void uploadMapsMissingBucketToBucketObjectNotFound() {
+    NoSuchBucketException noBucket =
+        NoSuchBucketException.builder().message("Missing").build();
+    when(s3Client.putObject(any(PutObjectRequest.class), any(RequestBody.class)))
+        .thenThrow(noBucket);
+
+    assertThrows(
+        BucketObjectNotFoundException.class,
+        () -> adapter.upload("archive/photos/cover.jpg", new byte[] {1}));
+  }
+
+  @Test
+  void uploadMapsBadRequestToInvalidBucketPath() {
+    when(s3Client.putObject(any(PutObjectRequest.class), any(RequestBody.class)))
+        .thenThrow(S3Exception.builder().statusCode(400).message("Bad request").build());
+
+    assertThrows(
+        InvalidBucketPathException.class,
+        () -> adapter.upload("archive/photos/cover.jpg", new byte[] {1}));
   }
 }
