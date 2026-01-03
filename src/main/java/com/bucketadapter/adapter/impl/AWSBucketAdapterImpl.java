@@ -1,9 +1,13 @@
 package com.bucketadapter.adapter.impl;
 
 import com.bucketadapter.adapter.BucketAdapter;
+import com.bucketadapter.bucketadapterexceptions.BucketOperationException;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import java.util.*;
 import java.util.regex.Matcher;
@@ -71,6 +75,24 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
   @Override
   public String share(String remote, int expirationTime) {
     return "";
+  }
+
+  private boolean doesExists(String remote) {
+
+    String[] arrayRemote = BucketAndPrefix(remote);
+    String bucket = arrayRemote[BUCKET];
+    String prefix = arrayRemote[PREFIX];
+
+    try {
+      s3Client.headObject(HeadObjectRequest.builder().bucket(bucket).key(prefix).build());
+      return true;
+
+    } catch (S3Exception e) {
+      if (e.statusCode() == 404) {
+        return false;
+      }
+      throw new BucketOperationException("AWS S3 error while checking existence of " + remote, e);
+    }
   }
 
   public static String[] BucketAndPrefix(String remote) {
