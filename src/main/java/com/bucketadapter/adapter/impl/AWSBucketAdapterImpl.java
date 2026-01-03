@@ -1,13 +1,14 @@
 package com.bucketadapter.adapter.impl;
 
 import com.bucketadapter.adapter.BucketAdapter;
+import com.bucketadapter.bucketadapterexceptions.BucketObjectNotFoundException;
 import com.bucketadapter.bucketadapterexceptions.BucketOperationException;
+import com.bucketadapter.bucketadapterexceptions.InvalidBucketPathException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
-import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
-import software.amazon.awssdk.services.s3.model.S3Exception;
+import software.amazon.awssdk.services.s3.model.*;
 
 import java.util.*;
 import java.util.regex.Matcher;
@@ -41,9 +42,19 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
   @Override
   public List<String> list(String remote, boolean recursive) {
 
-    String[] arrayRemote = BucketAndPrefix(remote);
-    String bucket = arrayRemote[BUCKET];
-    String prefix = arrayRemote[PREFIX];
+    final String bucket;
+    String prefix;
+    try {
+      String[] arrayRemote = BucketAndPrefix(remote);
+      bucket = arrayRemote[BUCKET];
+      prefix = arrayRemote[PREFIX];
+
+      if (bucket == null || bucket.isBlank()) {
+        throw new InvalidBucketPathException("Invalid path.");
+      }
+    } catch (RuntimeException e) {
+      throw new InvalidBucketPathException("Invalid path.");
+    }
 
     if (prefix != null && !prefix.isBlank() && !prefix.endsWith("/")) {
       prefix = prefix + "/";
@@ -58,18 +69,32 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
 
     var req = builder.build();
 
-    Set<String> results = new LinkedHashSet<>();
+    try {
+      Set<String> results = new LinkedHashSet<>();
 
-    s3Client.listObjectsV2Paginator(req).stream()
-        .forEach(
-            resp -> {
-              if (!recursive) {
-                resp.commonPrefixes().forEach(cp -> results.add(cp.prefix()));
-              }
-              resp.contents().forEach(obj -> results.add(obj.key()));
-            });
+      for (ListObjectsV2Response resp : s3Client.listObjectsV2Paginator(req)) {
+        if (!recursive) {
+          resp.commonPrefixes().forEach(cp -> results.add(cp.prefix()));
+        }
+        resp.contents().forEach(obj -> results.add(obj.key()));
+      }
 
-    return new ArrayList<>(results);
+      return new ArrayList<>(results);
+
+    } catch (NoSuchBucketException e) {
+      throw new BucketObjectNotFoundException("Resource not found.");
+
+    } catch (S3Exception e) {
+
+      if (e.statusCode() == 404) {
+        throw new BucketObjectNotFoundException("Resource not found.");
+      }
+
+      throw new BucketOperationException("Operation failed.", e);
+
+    } catch (SdkException e) {
+      throw new BucketOperationException("Operation failed.", e);
+    }
   }
 
   @Override
