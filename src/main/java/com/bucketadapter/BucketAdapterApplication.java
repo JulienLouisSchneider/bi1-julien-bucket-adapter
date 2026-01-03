@@ -7,9 +7,9 @@ import org.springframework.boot.builder.SpringApplicationBuilder;
 @SpringBootApplication
 public class BucketAdapterApplication {
 
-	public static void main(String[] args) {
-		new SpringApplicationBuilder(BucketAdapterApplication.class)
-				.initializers(new DotenvInitializer())
-				.run(args);
-	}
+  public static void main(String[] args) {
+    new SpringApplicationBuilder(BucketAdapterApplication.class)
+        .initializers(new DotenvInitializer())
+        .run(args);
+  }
 }

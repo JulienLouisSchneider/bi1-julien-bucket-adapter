@@ -16,9 +16,7 @@ public class BucketController {
 
   @GetMapping(params = "remote")
   public List<String> list(
-          @RequestParam String remote,
-          @RequestParam(defaultValue = "false") boolean recursive
-  ) {
+      @RequestParam String remote, @RequestParam(defaultValue = "false") boolean recursive) {
     return bucketService.list(remote, recursive);
   }
 }
