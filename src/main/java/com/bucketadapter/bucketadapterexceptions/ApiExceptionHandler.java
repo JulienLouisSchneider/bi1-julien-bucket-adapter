@@ -1,6 +1,5 @@
 package com.bucketadapter.bucketadapterexceptions;
 
-import com.bucketadapter.bucketadapterexceptions.*;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
@@ -10,8 +9,7 @@ import software.amazon.awssdk.services.s3.model.S3Exception;
 public class ApiExceptionHandler {
 
   @ExceptionHandler(InvalidBucketPathException.class)
-  public ResponseEntity<ProblemDetail> handleInvalidPath(
-      InvalidBucketPathException ex, HttpServletRequest req) {
+  public ResponseEntity<ProblemDetail> handleInvalidPath(HttpServletRequest req) {
 
     ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
     pd.setTitle("Invalid request");
@@ -21,8 +19,7 @@ public class ApiExceptionHandler {
   }
 
   @ExceptionHandler(BucketObjectNotFoundException.class)
-  public ResponseEntity<ProblemDetail> handleNotFound(
-      BucketObjectNotFoundException ex, HttpServletRequest req) {
+  public ResponseEntity<ProblemDetail> handleNotFound(HttpServletRequest req) {
 
     ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.NOT_FOUND);
     pd.setTitle("Not found");
@@ -60,7 +57,7 @@ public class ApiExceptionHandler {
   }
 
   @ExceptionHandler(Exception.class)
-  public ResponseEntity<ProblemDetail> handleAny(Exception ex, HttpServletRequest req) {
+  public ResponseEntity<ProblemDetail> handleAny(HttpServletRequest req) {
 
     ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.SERVICE_UNAVAILABLE);
     pd.setTitle("Service unavailable");

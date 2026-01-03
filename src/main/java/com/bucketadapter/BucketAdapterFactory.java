@@ -2,7 +2,6 @@ package com.bucketadapter;
 
 import com.bucketadapter.adapter.BucketAdapter;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -12,11 +11,9 @@ public class BucketAdapterFactory {
 
   @Autowired private Map<String, BucketAdapter> adapters;
 
-  private String provider;
-
   public BucketAdapter getAdapter() {
 
-    provider = getConfig("PROVIDER_IMPL", "Type of provider");
+    String provider = getConfig();
 
     BucketAdapter adapter = adapters.get(provider);
     if (adapter == null) {
@@ -26,19 +23,20 @@ public class BucketAdapterFactory {
     return adapter;
   }
 
-  private static String getConfig(String envVar, String configName) {
+  private static String getConfig() {
 
-    String value = System.getProperty(envVar);
+    String value = System.getProperty("PROVIDER_IMPL");
 
     if (value == null || value.isBlank()) {
       throw new IllegalStateException(
-          configName
-              + " is not configured.\n"
-              + "When running locally: Add to .env file as "
-              + envVar
-              + "=value\n"
-              + "When running in Docker: Set environment variable "
-              + envVar);
+          """
+                      Type of provider\
+                       is not configured.
+                      When running locally: Add to .env file as \
+                      PROVIDER_IMPL\
+                      =value
+                      When running in Docker: Set environment variable \
+                      PROVIDER_IMPL""");
     }
     return value;
   }
