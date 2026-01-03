@@ -34,3 +34,4 @@ build/
 
 .env
 .ds_store
+AGENT.md
