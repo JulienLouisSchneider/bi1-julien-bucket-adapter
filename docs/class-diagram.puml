@@ -5,6 +5,7 @@ class BucketAdapterController {
 
 }
 
+
 class BucketService {
     + upload(...): ...
     + download(...): ...
@@ -21,7 +22,7 @@ interface IBucketAdapter {
     + upload(string:remote, object:byte[]):void
     + download(string:local):byte[]
     + delete(string:remote, bool:recursive=false):void
-    + list(string:remote, recursive=false): string[]
+    + list(string:remote, bool:recursive=false): string[]
     + share(string:remote, int:expirationTime):string
 }
 
@@ -41,10 +42,19 @@ package AWSSDK {
 package GCPSDK {}
 package AZURESDK {}
 
+
+package BucketAdapterExceptions {
+    class BucketObjectNotFoundException {}
+    class BucketOperationException {}
+    class InvalidBucketPathException {}
+}
+
 ' ---- Relationships ----
+
 BucketAdapterController --> BucketService
 BucketService --> BucketAdapterFactory
 BucketAdapterFactory --> IBucketAdapter
+
 
 IBucketAdapter <|.. AWSBucketAdapterImpl
 IBucketAdapter <|.. GCPBucketAdapterImpl
