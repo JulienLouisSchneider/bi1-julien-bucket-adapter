@@ -7,12 +7,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.core.ResponseBytes;
+import software.amazon.awssdk.core.sync.ResponseTransformer;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CommonPrefix;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
 import software.amazon.awssdk.services.s3.model.DeleteObjectsResponse;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
@@ -139,9 +142,7 @@ public class AWSBucketAdapterTest {
 
     assertEquals(
         List.of(
-            "photos/2024/cover.jpg",
-            "photos/2024/january/cat.jpg",
-            "photos/2024/february/dog.jpg"),
+            "photos/2024/cover.jpg", "photos/2024/january/cat.jpg", "photos/2024/february/dog.jpg"),
         keys);
 
     ArgumentCaptor<ListObjectsV2Request> reqCaptor =
@@ -192,10 +193,8 @@ public class AWSBucketAdapterTest {
 
     adapter.upload("media/photos/hero.jpg", payload);
 
-    ArgumentCaptor<PutObjectRequest> reqCaptor =
-        ArgumentCaptor.forClass(PutObjectRequest.class);
-    ArgumentCaptor<RequestBody> bodyCaptor =
-        ArgumentCaptor.forClass(RequestBody.class);
+    ArgumentCaptor<PutObjectRequest> reqCaptor = ArgumentCaptor.forClass(PutObjectRequest.class);
+    ArgumentCaptor<RequestBody> bodyCaptor = ArgumentCaptor.forClass(RequestBody.class);
     verify(s3Client).putObject(reqCaptor.capture(), bodyCaptor.capture());
 
     PutObjectRequest request = reqCaptor.getValue();
@@ -208,8 +207,7 @@ public class AWSBucketAdapterTest {
 
   @Test
   void uploadMapsMissingBucketToBucketObjectNotFound() {
-    NoSuchBucketException noBucket =
-        NoSuchBucketException.builder().message("Missing").build();
+    NoSuchBucketException noBucket = NoSuchBucketException.builder().message("Missing").build();
     when(s3Client.putObject(any(PutObjectRequest.class), any(RequestBody.class)))
         .thenThrow(noBucket);
 
@@ -226,6 +224,43 @@ public class AWSBucketAdapterTest {
     assertThrows(
         InvalidBucketPathException.class,
         () -> adapter.upload("archive/photos/cover.jpg", new byte[] {1}));
+  }
+
+  @Test
+  void downloadReturnsBytesForValidRemote() {
+    byte[] payload = new byte[] {10, 20, 30};
+    @SuppressWarnings("unchecked")
+    ResponseBytes<GetObjectResponse> bytes = mock(ResponseBytes.class);
+    when(bytes.asByteArray()).thenReturn(payload);
+    when(s3Client.getObject(any(GetObjectRequest.class), any(ResponseTransformer.class)))
+        .thenReturn(bytes);
+
+    byte[] result = adapter.download("  archive/photos/cover.jpg  ");
+
+    assertArrayEquals(payload, result);
+    ArgumentCaptor<GetObjectRequest> reqCaptor = ArgumentCaptor.forClass(GetObjectRequest.class);
+    verify(s3Client).getObject(reqCaptor.capture(), any(ResponseTransformer.class));
+    GetObjectRequest req = reqCaptor.getValue();
+    assertEquals("archive", req.bucket());
+    assertEquals("photos/cover.jpg", req.key());
+  }
+
+  @Test
+  void downloadMapsNoSuchBucketToBucketObjectNotFound() {
+    when(s3Client.getObject(any(GetObjectRequest.class), any(ResponseTransformer.class)))
+        .thenThrow(NoSuchBucketException.builder().message("Missing bucket").build());
+
+    assertThrows(
+        BucketObjectNotFoundException.class, () -> adapter.download("archive/photos/cover.jpg"));
+  }
+
+  @Test
+  void downloadMapsBadRequestToInvalidBucketPath() {
+    when(s3Client.getObject(any(GetObjectRequest.class), any(ResponseTransformer.class)))
+        .thenThrow(S3Exception.builder().statusCode(400).message("Bad request").build());
+
+    assertThrows(
+        InvalidBucketPathException.class, () -> adapter.download("archive/photos/cover.jpg"));
   }
 
   @Test
@@ -277,9 +312,7 @@ public class AWSBucketAdapterTest {
         deleteReq.delete().objects().stream().map(ObjectIdentifier::key).toList();
     assertEquals(
         List.of(
-            "photos/2024/cover.jpg",
-            "photos/2024/january/cat.jpg",
-            "photos/2024/february/dog.jpg"),
+            "photos/2024/cover.jpg", "photos/2024/january/cat.jpg", "photos/2024/february/dog.jpg"),
         deletedKeys);
     verify(s3Client, never()).deleteObject(any(DeleteObjectRequest.class));
   }
@@ -299,16 +332,14 @@ public class AWSBucketAdapterTest {
     when(s3Client.headObject(any(HeadObjectRequest.class)))
         .thenReturn(HeadObjectResponse.builder().build());
     PresignedGetObjectRequest presigned = mock(PresignedGetObjectRequest.class);
-    when(presigned.url())
-        .thenReturn(new URL("https://cdn.example.com/photos/cover.jpg?token=abc"));
+    when(presigned.url()).thenReturn(new URL("https://cdn.example.com/photos/cover.jpg?token=abc"));
     when(s3Presigner.presignGetObject(any(GetObjectPresignRequest.class))).thenReturn(presigned);
 
     String url = adapter.share("archive/photos/cover.jpg", 120);
 
     assertEquals("https://cdn.example.com/photos/cover.jpg?token=abc", url);
 
-    ArgumentCaptor<HeadObjectRequest> headCaptor =
-        ArgumentCaptor.forClass(HeadObjectRequest.class);
+    ArgumentCaptor<HeadObjectRequest> headCaptor = ArgumentCaptor.forClass(HeadObjectRequest.class);
     verify(s3Client).headObject(headCaptor.capture());
     HeadObjectRequest headReq = headCaptor.getValue();
     assertEquals("archive", headReq.bucket());
@@ -330,8 +361,7 @@ public class AWSBucketAdapterTest {
         .thenThrow(S3Exception.builder().statusCode(404).message("Missing").build());
 
     assertThrows(
-        InvalidBucketPathException.class,
-        () -> adapter.share("archive/photos/ghost.jpg", 60));
+        InvalidBucketPathException.class, () -> adapter.share("archive/photos/ghost.jpg", 60));
 
     verify(s3Presigner, never()).presignGetObject(any(GetObjectPresignRequest.class));
   }
@@ -344,7 +374,6 @@ public class AWSBucketAdapterTest {
         .thenThrow(NoSuchBucketException.builder().message("Missing bucket").build());
 
     assertThrows(
-        BucketObjectNotFoundException.class,
-        () -> adapter.share("archive/photos/cover.jpg", 100));
+        BucketObjectNotFoundException.class, () -> adapter.share("archive/photos/cover.jpg", 100));
   }
 }
