@@ -1,12 +1,15 @@
 package com.bucketadapter.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.EnvironmentVariableCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 @Configuration
 public class AwsClientConfig {
@@ -22,6 +25,21 @@ public class AwsClientConfig {
     AwsBasicCredentials awsCreds = AwsBasicCredentials.create(accessKey, secretKey);
 
     return S3Client.builder()
+        .region(Region.of(region))
+        .credentialsProvider(StaticCredentialsProvider.create(awsCreds))
+        .build();
+  }
+
+  @Bean(destroyMethod = "close")
+  public S3Presigner s3Presigner() {
+
+    String region = resolveRegion();
+    String accessKey = getConfig("AWS_ACCESS_KEY_ID", "AWS Access Key ID");
+    String secretKey = getConfig("AWS_SECRET_ACCESS_KEY", "AWS Secret Access Key");
+
+    AwsBasicCredentials awsCreds = AwsBasicCredentials.create(accessKey, secretKey);
+
+    return S3Presigner.builder()
         .region(Region.of(region))
         .credentialsProvider(StaticCredentialsProvider.create(awsCreds))
         .build();

@@ -5,12 +5,14 @@ import com.bucketadapter.bucketadapterexceptions.BucketObjectNotFoundException;
 import com.bucketadapter.bucketadapterexceptions.BucketOperationException;
 import com.bucketadapter.bucketadapterexceptions.InvalidBucketPathException;
 import org.springframework.stereotype.Component;
-import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 
+import java.time.Duration;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -19,14 +21,16 @@ import java.util.regex.Pattern;
 public class AWSBucketAdapterImpl implements BucketAdapter {
 
   private final S3Client s3Client;
+  private final S3Presigner s3Presigner;
 
   private static final Pattern BUCKET_PREFIX = Pattern.compile("^/*([^/]+)(?:/(.*))?$");
 
   public static final int BUCKET = 0;
   public static final int PREFIX = 1;
 
-  public AWSBucketAdapterImpl(S3Client s3Client) {
+  public AWSBucketAdapterImpl(S3Client s3Client, S3Presigner s3Presigner) {
     this.s3Client = Objects.requireNonNull(s3Client, "s3Client must not be null");
+    this.s3Presigner = Objects.requireNonNull(s3Presigner, "s3Presigner must not be null");
   }
 
   @Override
@@ -225,7 +229,65 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
 
   @Override
   public String share(String remote, int expirationTime) {
-    return "";
+
+    if (remote == null || remote.isBlank()) {
+      throw new InvalidBucketPathException("Invalid path.");
+    }
+
+    if (expirationTime < 1 || expirationTime > 604800) { // 1s .. 7 jours
+      throw new InvalidBucketPathException("Invalid request.");
+    }
+
+    final String bucket;
+    final String key;
+
+    try {
+      String[] arrayRemote = BucketAndPrefix(remote);
+      bucket = arrayRemote[BUCKET];
+      key = arrayRemote[PREFIX];
+    } catch (RuntimeException e) {
+      throw new InvalidBucketPathException("Invalid path.");
+    }
+
+    if (bucket == null || bucket.isBlank() || key == null || key.isBlank() || key.endsWith("/")) {
+      throw new InvalidBucketPathException("Invalid path.");
+    }
+
+    if (!doesExists(remote)) {
+      throw new InvalidBucketPathException("File not found.");
+    }
+
+    try {
+      GetObjectRequest getReq = GetObjectRequest.builder().bucket(bucket).key(key).build();
+
+      GetObjectPresignRequest presignReq =
+          GetObjectPresignRequest.builder()
+              .signatureDuration(Duration.ofSeconds(expirationTime))
+              .getObjectRequest(getReq)
+              .build();
+
+      return s3Presigner.presignGetObject(presignReq).url().toString();
+
+    } catch (NoSuchBucketException e) {
+      throw new BucketObjectNotFoundException("Resource not found.");
+
+    } catch (S3Exception e) {
+      int sc = e.statusCode();
+
+      if (sc == 404) {
+        throw new BucketObjectNotFoundException("Resource not found.");
+      }
+      if (sc == 400) {
+        throw new InvalidBucketPathException("Invalid path.");
+      }
+
+      // 403/429/5xx, etc.
+      throw new BucketOperationException("Operation failed.", e);
+
+    } catch (SdkException e) {
+      // credentials, réseau, timeouts, etc.
+      throw new BucketOperationException("Operation failed.", e);
+    }
   }
 
   private boolean doesExists(String remote) {
@@ -242,7 +304,7 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
       if (e.statusCode() == 404) {
         return false;
       }
-      throw new BucketOperationException("AWS S3 error while checking existence of " + remote, e);
+      throw new BucketOperationException("Error while checking existence of " + remote, e);
     }
   }
 
