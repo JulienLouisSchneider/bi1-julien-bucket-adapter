@@ -42,9 +42,10 @@ public class BucketController {
     bucketService.delete(remote, recursive);
   }
 
-  @GetMapping(value = "/share", params = "remote")
-  public String share(
-      @RequestParam String remote, @RequestParam(defaultValue = "3600") int expirationTime) {
+  @GetMapping(
+      value = "/share",
+      params = {"remote", "expirationTime"})
+  public String share(@RequestParam String remote, @RequestParam int expirationTime) {
     return bucketService.share(remote, expirationTime);
   }
 }

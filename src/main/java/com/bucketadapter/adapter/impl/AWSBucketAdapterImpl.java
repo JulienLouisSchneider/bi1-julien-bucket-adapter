@@ -229,12 +229,11 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
 
   @Override
   public String share(String remote, int expirationTime) {
-
     if (remote == null || remote.isBlank()) {
       throw new InvalidBucketPathException("Invalid path.");
     }
 
-    if (expirationTime < 1 || expirationTime > 604800) { // 1s .. 7 jours
+    if (expirationTime < 1 || expirationTime > 604800) {
       throw new InvalidBucketPathException("Invalid request.");
     }
 
