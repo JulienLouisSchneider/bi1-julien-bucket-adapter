@@ -12,6 +12,9 @@ import software.amazon.awssdk.services.s3.model.CommonPrefix;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
 import software.amazon.awssdk.services.s3.model.DeleteObjectsResponse;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
@@ -20,8 +23,13 @@ import software.amazon.awssdk.services.s3.model.ObjectIdentifier;
 import software.amazon.awssdk.services.s3.model.S3Object;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.paginators.ListObjectsV2Iterable;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
+import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -38,12 +46,14 @@ import static org.mockito.Mockito.when;
 public class AWSBucketAdapterTest {
 
   private S3Client s3Client;
+  private S3Presigner s3Presigner;
   private AWSBucketAdapterImpl adapter;
 
   @BeforeEach
   void setUp() {
     s3Client = mock(S3Client.class);
-    adapter = new AWSBucketAdapterImpl(s3Client);
+    s3Presigner = mock(S3Presigner.class);
+    adapter = new AWSBucketAdapterImpl(s3Client, s3Presigner);
   }
 
   @Test
@@ -282,5 +292,59 @@ public class AWSBucketAdapterTest {
     assertThrows(
         BucketObjectNotFoundException.class,
         () -> adapter.delete("archive/photos/cover.jpg", false));
+  }
+
+  @Test
+  void sharePresignsExistingObject() throws MalformedURLException {
+    when(s3Client.headObject(any(HeadObjectRequest.class)))
+        .thenReturn(HeadObjectResponse.builder().build());
+    PresignedGetObjectRequest presigned = mock(PresignedGetObjectRequest.class);
+    when(presigned.url())
+        .thenReturn(new URL("https://cdn.example.com/photos/cover.jpg?token=abc"));
+    when(s3Presigner.presignGetObject(any(GetObjectPresignRequest.class))).thenReturn(presigned);
+
+    String url = adapter.share("archive/photos/cover.jpg", 120);
+
+    assertEquals("https://cdn.example.com/photos/cover.jpg?token=abc", url);
+
+    ArgumentCaptor<HeadObjectRequest> headCaptor =
+        ArgumentCaptor.forClass(HeadObjectRequest.class);
+    verify(s3Client).headObject(headCaptor.capture());
+    HeadObjectRequest headReq = headCaptor.getValue();
+    assertEquals("archive", headReq.bucket());
+    assertEquals("photos/cover.jpg", headReq.key());
+
+    ArgumentCaptor<GetObjectPresignRequest> presignCaptor =
+        ArgumentCaptor.forClass(GetObjectPresignRequest.class);
+    verify(s3Presigner).presignGetObject(presignCaptor.capture());
+    GetObjectPresignRequest presignReq = presignCaptor.getValue();
+    assertEquals(120, presignReq.signatureDuration().getSeconds());
+    GetObjectRequest getReq = presignReq.getObjectRequest();
+    assertEquals("archive", getReq.bucket());
+    assertEquals("photos/cover.jpg", getReq.key());
+  }
+
+  @Test
+  void shareThrowsWhenObjectMissing() {
+    when(s3Client.headObject(any(HeadObjectRequest.class)))
+        .thenThrow(S3Exception.builder().statusCode(404).message("Missing").build());
+
+    assertThrows(
+        InvalidBucketPathException.class,
+        () -> adapter.share("archive/photos/ghost.jpg", 60));
+
+    verify(s3Presigner, never()).presignGetObject(any(GetObjectPresignRequest.class));
+  }
+
+  @Test
+  void shareMapsNoSuchBucketToBucketObjectNotFound() {
+    when(s3Client.headObject(any(HeadObjectRequest.class)))
+        .thenReturn(HeadObjectResponse.builder().build());
+    when(s3Presigner.presignGetObject(any(GetObjectPresignRequest.class)))
+        .thenThrow(NoSuchBucketException.builder().message("Missing bucket").build());
+
+    assertThrows(
+        BucketObjectNotFoundException.class,
+        () -> adapter.share("archive/photos/cover.jpg", 100));
   }
 }
