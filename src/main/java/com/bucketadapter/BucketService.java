@@ -22,8 +22,8 @@ public class BucketService {
     bucketAdapter().upload(remote, file);
   }
 
-  public void download(String local) {
-    bucketAdapter().download(local);
+  public byte[] download(String local) {
+    return bucketAdapter().download(local);
   }
 
   public void delete(String remote, boolean recursive) {

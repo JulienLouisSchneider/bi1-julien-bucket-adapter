@@ -1,7 +1,9 @@
 package com.bucketadapter;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
@@ -47,5 +49,19 @@ public class BucketController {
       params = {"remote", "expirationTime"})
   public String share(@RequestParam String remote, @RequestParam int expirationTime) {
     return bucketService.share(remote, expirationTime);
+  }
+
+  @GetMapping(value = "/download", params = "remote")
+  public ResponseEntity<byte[]> download(@RequestParam String remote) {
+    byte[] data = bucketService.download(remote);
+
+    String filename = remote.substring(remote.lastIndexOf('/') + 1);
+
+    return ResponseEntity.ok()
+        .contentType(MediaType.APPLICATION_OCTET_STREAM)
+        .header(
+            HttpHeaders.CONTENT_DISPOSITION,
+            "attachment; filename=\"" + filename.replace("\"", "") + "\"")
+        .body(data);
   }
 }
