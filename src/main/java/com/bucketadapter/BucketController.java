@@ -34,4 +34,11 @@ public class BucketController {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unable to read uploaded file", e);
     }
   }
+
+  @DeleteMapping(params = "remote")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void delete(
+      @RequestParam String remote, @RequestParam(defaultValue = "false") boolean recursive) {
+    bucketService.delete(remote, recursive);
+  }
 }
