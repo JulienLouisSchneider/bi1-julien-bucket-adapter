@@ -1,13 +1,15 @@
 package com.bucketadapter;
 
-import org.springframework.boot.SpringApplication;
+import com.bucketadapter.config.DotenvInitializer;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.builder.SpringApplicationBuilder;
 
 @SpringBootApplication
 public class BucketAdapterApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(BucketAdapterApplication.class, args);
-	}
-
+  public static void main(String[] args) {
+    new SpringApplicationBuilder(BucketAdapterApplication.class)
+        .initializers(new DotenvInitializer())
+        .run(args);
+  }
 }

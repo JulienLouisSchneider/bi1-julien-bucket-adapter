@@ -3,7 +3,9 @@ package com.bucketadapter.adapter.impl;
 import com.bucketadapter.adapter.BucketAdapter;
 
 import java.util.List;
+import org.springframework.stereotype.Component;
 
+@Component("AZURE")
 public class AZUREBucketAdapterImpl implements BucketAdapter {
     @Override
     public void upload(String remote, byte[] object) {

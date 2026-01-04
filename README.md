@@ -34,6 +34,18 @@ How to run the tests?
 
 How to deploy the application outside the dev environment.
 
+## Use it
+
+### AWS
+
+### List
+
+```bash
+curl http://localhost:8080/api/v1/objects?remote=bi1-julien&recursive=true
+
+curl http://localhost:8080/api/v1/objects?remote=bi1-julien&recursive=false
+```
+
 ## Directory structure
 
 * Tip: try the tree bash command

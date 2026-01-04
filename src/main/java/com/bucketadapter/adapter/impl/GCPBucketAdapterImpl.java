@@ -1,9 +1,11 @@
 package com.bucketadapter.adapter.impl;
 
 import com.bucketadapter.adapter.BucketAdapter;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+@Component("GCP")
 public class GCPBucketAdapterImpl implements BucketAdapter {
     @Override
     public void upload(String remote, byte[] object) {
