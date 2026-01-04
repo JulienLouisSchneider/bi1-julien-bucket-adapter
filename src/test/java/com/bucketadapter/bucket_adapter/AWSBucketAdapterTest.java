@@ -9,10 +9,14 @@ import org.mockito.ArgumentCaptor;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CommonPrefix;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectsResponse;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.ObjectIdentifier;
 import software.amazon.awssdk.services.s3.model.S3Object;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.paginators.ListObjectsV2Iterable;
@@ -27,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -211,5 +216,71 @@ public class AWSBucketAdapterTest {
     assertThrows(
         InvalidBucketPathException.class,
         () -> adapter.upload("archive/photos/cover.jpg", new byte[] {1}));
+  }
+
+  @Test
+  void deleteNonRecursiveSendsDeleteObjectRequest() {
+    adapter.delete("media/photos/cover.jpg", false);
+
+    ArgumentCaptor<DeleteObjectRequest> reqCaptor =
+        ArgumentCaptor.forClass(DeleteObjectRequest.class);
+    verify(s3Client).deleteObject(reqCaptor.capture());
+    DeleteObjectRequest req = reqCaptor.getValue();
+    assertEquals("media", req.bucket());
+    assertEquals("photos/cover.jpg", req.key());
+    verify(s3Client, never()).listObjectsV2Paginator(any(ListObjectsV2Request.class));
+  }
+
+  @Test
+  void deleteRecursivePrefixUsesPaginatorAndBatchDelete() {
+    ListObjectsV2Iterable paginator = mock(ListObjectsV2Iterable.class);
+    when(s3Client.listObjectsV2Paginator(any(ListObjectsV2Request.class))).thenReturn(paginator);
+    ListObjectsV2Response firstPage =
+        ListObjectsV2Response.builder()
+            .contents(
+                S3Object.builder().key("photos/2024/cover.jpg").build(),
+                S3Object.builder().key("photos/2024/january/cat.jpg").build())
+            .build();
+    ListObjectsV2Response secondPage =
+        ListObjectsV2Response.builder()
+            .contents(S3Object.builder().key("photos/2024/february/dog.jpg").build())
+            .build();
+    when(paginator.iterator()).thenReturn(Stream.of(firstPage, secondPage).iterator());
+    when(s3Client.deleteObjects(any(DeleteObjectsRequest.class)))
+        .thenReturn(DeleteObjectsResponse.builder().build());
+
+    adapter.delete("archive/photos/2024/", true);
+
+    ArgumentCaptor<ListObjectsV2Request> listCaptor =
+        ArgumentCaptor.forClass(ListObjectsV2Request.class);
+    verify(s3Client).listObjectsV2Paginator(listCaptor.capture());
+    ListObjectsV2Request listReq = listCaptor.getValue();
+    assertEquals("archive", listReq.bucket());
+    assertEquals("photos/2024/", listReq.prefix());
+
+    ArgumentCaptor<DeleteObjectsRequest> deleteCaptor =
+        ArgumentCaptor.forClass(DeleteObjectsRequest.class);
+    verify(s3Client).deleteObjects(deleteCaptor.capture());
+    DeleteObjectsRequest deleteReq = deleteCaptor.getValue();
+    assertEquals("archive", deleteReq.bucket());
+    List<String> deletedKeys =
+        deleteReq.delete().objects().stream().map(ObjectIdentifier::key).toList();
+    assertEquals(
+        List.of(
+            "photos/2024/cover.jpg",
+            "photos/2024/january/cat.jpg",
+            "photos/2024/february/dog.jpg"),
+        deletedKeys);
+    verify(s3Client, never()).deleteObject(any(DeleteObjectRequest.class));
+  }
+
+  @Test
+  void deleteNonRecursiveMapsMissingBucketToBucketObjectNotFound() {
+    when(s3Client.deleteObject(any(DeleteObjectRequest.class)))
+        .thenThrow(NoSuchBucketException.builder().message("Missing").build());
+
+    assertThrows(
+        BucketObjectNotFoundException.class,
+        () -> adapter.delete("archive/photos/cover.jpg", false));
   }
 }
