@@ -1,5 +1,8 @@
 package com.bucketadapter;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -21,12 +24,28 @@ public class BucketController {
     this.bucketService = bucketService;
   }
 
+  @Operation(
+      summary = "Lister des objets",
+      description =
+          "Liste les objets sous le préfixe remote. Utiliser recursive=true pour inclure les sous-dossiers.")
+  @ApiResponses({
+    @ApiResponse(responseCode = "200", description = "Liste retournée"),
+    @ApiResponse(responseCode = "400", description = "Chemin remote invalide"),
+    @ApiResponse(responseCode = "404", description = "Bucket/objet introuvable"),
+    @ApiResponse(responseCode = "500", description = "Erreur interne")
+  })
   @GetMapping(params = "remote")
   public List<String> list(
       @RequestParam String remote, @RequestParam(defaultValue = "false") boolean recursive) {
     return bucketService.list(remote, recursive);
   }
 
+  @Operation(summary = "Upload d’un objet")
+  @ApiResponses({
+    @ApiResponse(responseCode = "201", description = "Objet créé"),
+    @ApiResponse(responseCode = "400", description = "Chemin remote invalide"),
+    @ApiResponse(responseCode = "404", description = "Bucket/objet introuvable")
+  })
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   @ResponseStatus(HttpStatus.CREATED)
   public void upload(@RequestParam String remote, @RequestPart("file") MultipartFile file) {
@@ -37,6 +56,16 @@ public class BucketController {
     }
   }
 
+  @Operation(
+      summary = "Supprimer un objet",
+      description =
+          "Supprime l'objet ciblé par remote. Si remote pointe vers un préfixe, utiliser recursive=true.")
+  @ApiResponses({
+    @ApiResponse(responseCode = "204", description = "Objet supprimé"),
+    @ApiResponse(responseCode = "400", description = "Chemin remote invalide"),
+    @ApiResponse(responseCode = "404", description = "Bucket/objet introuvable"),
+    @ApiResponse(responseCode = "500", description = "Erreur interne")
+  })
   @DeleteMapping(params = "remote")
   @ResponseStatus(HttpStatus.NO_CONTENT)
   public void delete(
@@ -44,6 +73,16 @@ public class BucketController {
     bucketService.delete(remote, recursive);
   }
 
+  @Operation(
+      summary = "Partager un objet",
+      description =
+          "Retourne une URL pré-signée pour l'objet remote, valable expirationTime secondes.")
+  @ApiResponses({
+    @ApiResponse(responseCode = "200", description = "URL pré-signée retournée"),
+    @ApiResponse(responseCode = "400", description = "Chemin remote invalide"),
+    @ApiResponse(responseCode = "404", description = "Bucket/objet introuvable"),
+    @ApiResponse(responseCode = "500", description = "Erreur interne")
+  })
   @GetMapping(
       value = "/share",
       params = {"remote", "expirationTime"})
@@ -51,6 +90,15 @@ public class BucketController {
     return bucketService.share(remote, expirationTime);
   }
 
+  @Operation(
+      summary = "Télécharger un objet",
+      description = "Télécharge l'objet remote en binaire (application/octet-stream).")
+  @ApiResponses({
+    @ApiResponse(responseCode = "200", description = "Contenu binaire retourné"),
+    @ApiResponse(responseCode = "400", description = "Chemin remote invalide"),
+    @ApiResponse(responseCode = "404", description = "Bucket/objet introuvable"),
+    @ApiResponse(responseCode = "500", description = "Erreur interne")
+  })
   @GetMapping(value = "/download", params = "remote")
   public ResponseEntity<byte[]> download(@RequestParam String remote) {
     byte[] data = bucketService.download(remote);
