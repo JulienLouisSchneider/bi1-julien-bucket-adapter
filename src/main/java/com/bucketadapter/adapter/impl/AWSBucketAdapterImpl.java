@@ -109,34 +109,19 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
 
   @Override
   public List<String> list(String remote, boolean recursive) {
+    AwsS3AdapterHelper.RemoteRef ref = AwsS3AdapterHelper.parseRemote(remote);
 
-    String bucket;
-    String prefix;
+    String bucket = ref.bucket();
+    String prefix = AwsS3AdapterHelper.normalizeListPrefix(ref.keyOrPrefix());
 
-    try {
-      String[] arrayRemote = BucketAndPrefix(remote);
-      bucket = arrayRemote[BUCKET];
-      prefix = arrayRemote[PREFIX];
-
-      if (bucket == null || bucket.isBlank()) {
-        throw new InvalidBucketPathException("Invalid path.");
-      }
-    } catch (RuntimeException e) {
-      throw new InvalidBucketPathException("Invalid path.");
-    }
-
-    if (prefix != null && !prefix.isBlank() && !prefix.endsWith("/")) {
-      prefix = prefix + "/";
-    }
-
-    var builder =
-        ListObjectsV2Request.builder().bucket(bucket).prefix(prefix == null ? "" : prefix);
+    ListObjectsV2Request.Builder builder =
+        ListObjectsV2Request.builder().bucket(bucket).prefix(prefix);
 
     if (!recursive) {
       builder.delimiter("/");
     }
 
-    var req = builder.build();
+    ListObjectsV2Request req = builder.build();
 
     try {
       Set<String> results = new LinkedHashSet<>();
@@ -154,12 +139,7 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
       throw new BucketObjectNotFoundException("Resource not found.");
 
     } catch (S3Exception e) {
-
-      if (e.statusCode() == 404) {
-        throw new BucketObjectNotFoundException("Resource not found.");
-      }
-
-      throw new BucketOperationException("Operation failed.", e);
+      throw AwsS3AdapterHelper.mapS3Exception(e);
 
     } catch (SdkException e) {
       throw new BucketOperationException("Operation failed.", e);

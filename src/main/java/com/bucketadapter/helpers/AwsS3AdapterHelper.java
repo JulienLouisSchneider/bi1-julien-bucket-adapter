@@ -74,4 +74,11 @@ public final class AwsS3AdapterHelper {
     }
     return ref;
   }
+
+  public static String normalizeListPrefix(String keyOrPrefix) {
+    if (keyOrPrefix == null || keyOrPrefix.isBlank()) {
+      return "";
+    }
+    return keyOrPrefix.endsWith("/") ? keyOrPrefix : keyOrPrefix + "/";
+  }
 }
