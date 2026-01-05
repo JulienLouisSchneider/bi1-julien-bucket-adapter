@@ -183,24 +183,39 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
   }
 
   private boolean doesExists(String remote) {
+    AwsS3AdapterHelper.RemoteRef ref =
+        AwsS3AdapterHelper.requireObjectKey(AwsS3AdapterHelper.parseRemote(remote));
 
-    String[] arrayRemote = BucketAndPrefix(remote);
-    String bucket = arrayRemote[BUCKET];
-    String prefix = arrayRemote[PREFIX];
+    HeadObjectRequest req =
+        HeadObjectRequest.builder().bucket(ref.bucket()).key(ref.keyOrPrefix()).build();
 
     try {
-      s3Client.headObject(HeadObjectRequest.builder().bucket(bucket).key(prefix).build());
+      s3Client.headObject(req);
       return true;
 
+    } catch (NoSuchBucketException e) {
+      throw new BucketObjectNotFoundException("Resource not found.");
+
     } catch (S3Exception e) {
-      if (e.statusCode() == 404) {
-        return false;
+      int sc = e.statusCode();
+
+      if (sc == 404) {
+        return false; // objet introuvable
       }
-      throw new BucketOperationException("Error while checking existence of " + remote, e);
+      if (sc == 400) {
+        throw new InvalidBucketPathException("Invalid path.");
+      }
+
+      throw new BucketOperationException("Operation failed.", e);
+
+    } catch (SdkException e) {
+      throw new BucketOperationException("Operation failed.", e);
     }
   }
 
   private void deletePrefixRecursively(String bucket, String prefix) {
+    AwsS3AdapterHelper.requireBucketName(bucket);
+
     ListObjectsV2Request listReq =
         ListObjectsV2Request.builder().bucket(bucket).prefix(prefix).build();
 
@@ -212,8 +227,7 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
           batch.add(ObjectIdentifier.builder().key(obj.key()).build());
 
           if (batch.size() == DELETE_BATCH_SIZE) {
-            // flushBatchDelete() mappe déjà les erreurs + clear le batch
-            flushBatchDelete(bucket, batch);
+            flushBatchDelete(bucket, batch); // clear géré par flush
           }
         }
       }
@@ -224,37 +238,20 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
       throw new BucketObjectNotFoundException("Resource not found.");
 
     } catch (S3Exception e) {
-      // Ici on mappe uniquement les erreurs de la phase "listing"
+      // Ici : erreurs de listing uniquement
       throw AwsS3AdapterHelper.mapS3Exception(e);
 
     } catch (SdkException e) {
       throw new BucketOperationException("Operation failed.", e);
 
     } finally {
-      batch.clear(); // redondant car flushBatchDelete() clear déjà, mais ok en sécurité
+      batch.clear();
     }
-  }
-
-  public static String[] BucketAndPrefix(String remote) {
-
-    String path = remote.trim();
-    Matcher m = BUCKET_PREFIX.matcher(path);
-
-    if (!m.matches()) {
-      throw new IllegalArgumentException("Invalid path: " + remote);
-    }
-
-    String bucket = m.group(1);
-    String prefix = (m.group(2) == null) ? "" : m.group(2);
-
-    return new String[] {bucket, prefix};
   }
 
   private void deleteOne(String bucket, String key) {
-
-    if (bucket == null || bucket.isBlank() || key == null || key.isBlank() || key.endsWith("/")) {
-      throw new InvalidBucketPathException("Invalid path.");
-    }
+    AwsS3AdapterHelper.requireBucketName(bucket);
+    AwsS3AdapterHelper.requireObjectKeyString(key);
 
     try {
       s3Client.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(key).build());
@@ -263,19 +260,9 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
       throw new BucketObjectNotFoundException("Resource not found.");
 
     } catch (S3Exception e) {
-      int sc = e.statusCode();
-
-      if (sc == 404) {
-        throw new BucketObjectNotFoundException("Resource not found.");
-      }
-      if (sc == 400) {
-        throw new InvalidBucketPathException("Invalid path.");
-      }
-
-      throw new BucketOperationException("Operation failed.", e);
+      throw AwsS3AdapterHelper.mapS3Exception(e);
 
     } catch (SdkException e) {
-
       throw new BucketOperationException("Operation failed.", e);
     }
   }
@@ -286,9 +273,7 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
     }
     if (batch.isEmpty()) return;
 
-    if (bucket == null || bucket.isBlank()) {
-      throw new InvalidBucketPathException("Invalid path.");
-    }
+    AwsS3AdapterHelper.requireBucketName(bucket);
 
     try {
       DeleteObjectsResponse resp =
@@ -298,53 +283,13 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
                   .delete(Delete.builder().objects(batch).quiet(true).build())
                   .build());
 
-      if (resp.hasErrors() && resp.errors() != null && !resp.errors().isEmpty()) {
-
-        boolean anyNotFound =
-            resp.errors().stream()
-                .anyMatch(
-                    e ->
-                        "NoSuchKey".equalsIgnoreCase(e.code())
-                            || "NoSuchVersion".equalsIgnoreCase(e.code()));
-
-        boolean anyBucketNotFound =
-            resp.errors().stream().anyMatch(e -> "NoSuchBucket".equalsIgnoreCase(e.code()));
-
-        boolean anyInvalid =
-            resp.errors().stream()
-                .anyMatch(
-                    e ->
-                        "InvalidRequest".equalsIgnoreCase(e.code())
-                            || "InvalidArgument".equalsIgnoreCase(e.code())
-                            || "MalformedXML".equalsIgnoreCase(e.code()));
-
-        if (anyBucketNotFound || anyNotFound) {
-          throw new BucketObjectNotFoundException("Resource not found.");
-        }
-        if (anyInvalid) {
-          throw new InvalidBucketPathException("Invalid path.");
-        }
-
-        // Cause neutre (pas de fuite S3)
-        throw new BucketOperationException(
-            "Operation failed.",
-            new IllegalStateException("Provider reported partial delete failure."));
-      }
+      AwsS3AdapterHelper.throwIfBatchDeleteHadErrors(resp);
 
     } catch (NoSuchBucketException e) {
       throw new BucketObjectNotFoundException("Resource not found.");
 
     } catch (S3Exception e) {
-      int sc = e.statusCode();
-
-      if (sc == 404) {
-        throw new BucketObjectNotFoundException("Resource not found.");
-      }
-      if (sc == 400) {
-        throw new InvalidBucketPathException("Invalid path.");
-      }
-
-      throw new BucketOperationException("Operation failed.", e);
+      throw AwsS3AdapterHelper.mapS3Exception(e);
 
     } catch (SdkException e) {
       throw new BucketOperationException("Operation failed.", e);

@@ -7,6 +7,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
+import java.util.Set;
+import software.amazon.awssdk.services.s3.model.DeleteObjectsResponse;
+
 public final class AwsS3AdapterHelper {
 
   private AwsS3AdapterHelper() {}
@@ -87,5 +90,47 @@ public final class AwsS3AdapterHelper {
     if (expirationTimeSeconds < 1 || expirationTimeSeconds > 604800) {
       throw new InvalidBucketPathException("Invalid request.");
     }
+  }
+
+  public static void requireBucketName(String bucket) {
+    if (bucket == null || bucket.isBlank()) {
+      throw new InvalidBucketPathException("Invalid path.");
+    }
+  }
+
+  public static void requireObjectKeyString(String key) {
+    if (key == null || key.isBlank() || key.endsWith("/")) {
+      throw new InvalidBucketPathException("Invalid path.");
+    }
+  }
+
+  public static void throwIfBatchDeleteHadErrors(DeleteObjectsResponse resp) {
+    if (resp == null || !resp.hasErrors() || resp.errors() == null || resp.errors().isEmpty()) {
+      return;
+    }
+
+    Set<String> NOT_FOUND = Set.of("NoSuchKey", "NoSuchVersion", "NoSuchBucket");
+    Set<String> INVALID = Set.of("InvalidRequest", "InvalidArgument", "MalformedXML");
+
+    boolean anyNotFound =
+        resp.errors().stream()
+            .map(err -> err.code())
+            .anyMatch(code -> code != null && NOT_FOUND.contains(code));
+
+    boolean anyInvalid =
+        resp.errors().stream()
+            .map(err -> err.code())
+            .anyMatch(code -> code != null && INVALID.contains(code));
+
+    if (anyNotFound) {
+      throw new BucketObjectNotFoundException("Resource not found.");
+    }
+    if (anyInvalid) {
+      throw new InvalidBucketPathException("Invalid path.");
+    }
+
+    throw new BucketOperationException(
+        "Operation failed.",
+        new IllegalStateException("Provider reported partial delete failure."));
   }
 }
