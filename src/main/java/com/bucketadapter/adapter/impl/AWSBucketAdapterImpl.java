@@ -16,8 +16,6 @@ import com.bucketadapter.helpers.AwsS3AdapterHelper;
 
 import java.time.Duration;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Component("AWS")
 public class AWSBucketAdapterImpl implements BucketAdapter {
@@ -25,10 +23,6 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
   private final S3Client s3Client;
   private final S3Presigner s3Presigner;
 
-  private static final Pattern BUCKET_PREFIX = Pattern.compile("^/*([^/]+)(?:/(.*))?$");
-
-  public static final int BUCKET = 0;
-  public static final int PREFIX = 1;
   private static final int DELETE_BATCH_SIZE = 1000;
 
   public AWSBucketAdapterImpl(S3Client s3Client, S3Presigner s3Presigner) {
@@ -90,20 +84,17 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
     String bucket = ref.bucket();
     String keyOrPrefix = ref.keyOrPrefix();
 
-    // Non-récursif => suppression d'un objet uniquement
     if (!recursive) {
-      AwsS3AdapterHelper.requireObjectKey(ref); // refuse trailing "/"
-      deleteOne(bucket, keyOrPrefix); // gère déjà le mapping d’erreurs
+      AwsS3AdapterHelper.requireObjectKey(ref);
+      deleteOne(bucket, keyOrPrefix);
       return;
     }
 
-    // Récursif mais clé d'objet => supprimer l'objet seulement
     if (!keyOrPrefix.endsWith("/")) {
-      deleteOne(bucket, keyOrPrefix); // gère déjà le mapping d’erreurs
+      deleteOne(bucket, keyOrPrefix);
       return;
     }
 
-    // Récursif sur un préfixe => lister puis batch delete
     deletePrefixRecursively(bucket, keyOrPrefix);
   }
 
@@ -153,8 +144,6 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
     AwsS3AdapterHelper.RemoteRef ref =
         AwsS3AdapterHelper.requireObjectKey(AwsS3AdapterHelper.parseRemote(remote));
 
-    // On conserve ta logique actuelle : vérifier l'existence avant de presigner
-    // (même si, techniquement, presigner peut fonctionner même si l'objet n'existe pas).
     if (!doesExists(remote)) {
       throw new InvalidBucketPathException("File not found.");
     }
@@ -200,7 +189,7 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
       int sc = e.statusCode();
 
       if (sc == 404) {
-        return false; // objet introuvable
+        return false;
       }
       if (sc == 400) {
         throw new InvalidBucketPathException("Invalid path.");
@@ -227,7 +216,7 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
           batch.add(ObjectIdentifier.builder().key(obj.key()).build());
 
           if (batch.size() == DELETE_BATCH_SIZE) {
-            flushBatchDelete(bucket, batch); // clear géré par flush
+            flushBatchDelete(bucket, batch);
           }
         }
       }
@@ -238,7 +227,7 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
       throw new BucketObjectNotFoundException("Resource not found.");
 
     } catch (S3Exception e) {
-      // Ici : erreurs de listing uniquement
+
       throw AwsS3AdapterHelper.mapS3Exception(e);
 
     } catch (SdkException e) {
