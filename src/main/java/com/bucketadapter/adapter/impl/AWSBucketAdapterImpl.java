@@ -29,6 +29,7 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
 
   public static final int BUCKET = 0;
   public static final int PREFIX = 1;
+  private static final int DELETE_BATCH_SIZE = 1000;
 
   public AWSBucketAdapterImpl(S3Client s3Client, S3Presigner s3Presigner) {
     this.s3Client = Objects.requireNonNull(s3Client, "s3Client must not be null");
@@ -83,82 +84,27 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
 
   @Override
   public void delete(String remote, boolean recursive) {
+    AwsS3AdapterHelper.RemoteRef ref =
+        AwsS3AdapterHelper.requireKeyOrPrefix(AwsS3AdapterHelper.parseRemote(remote));
 
-    if (remote == null || remote.isBlank()) {
-      throw new InvalidBucketPathException("Invalid path.");
-    }
-
-    final String bucket;
-    final String prefix;
-
-    try {
-      String[] arrayRemote = BucketAndPrefix(remote);
-      bucket = arrayRemote[BUCKET];
-      prefix = arrayRemote[PREFIX];
-    } catch (RuntimeException e) {
-      throw new InvalidBucketPathException("Invalid path.");
-    }
-
-    if (bucket == null || bucket.isBlank() || prefix == null || prefix.isBlank()) {
-      throw new InvalidBucketPathException("Invalid path.");
-    }
+    String bucket = ref.bucket();
+    String keyOrPrefix = ref.keyOrPrefix();
 
     // Non-récursif => suppression d'un objet uniquement
     if (!recursive) {
-      if (prefix.endsWith("/")) {
-        throw new InvalidBucketPathException("Invalid path.");
-      }
-      // deleteOne() doit déjà mapper S3 -> exceptions génériques
-      deleteOne(bucket, prefix);
+      AwsS3AdapterHelper.requireObjectKey(ref); // refuse trailing "/"
+      deleteOne(bucket, keyOrPrefix); // gère déjà le mapping d’erreurs
       return;
     }
 
     // Récursif mais clé d'objet => supprimer l'objet seulement
-    if (!prefix.endsWith("/")) {
-      deleteOne(bucket, prefix);
+    if (!keyOrPrefix.endsWith("/")) {
+      deleteOne(bucket, keyOrPrefix); // gère déjà le mapping d’erreurs
       return;
     }
 
     // Récursif sur un préfixe => lister puis batch delete
-    ListObjectsV2Request listReq =
-        ListObjectsV2Request.builder().bucket(bucket).prefix(prefix).build();
-    List<ObjectIdentifier> batch = new ArrayList<>(1000);
-
-    try {
-      for (ListObjectsV2Response resp : s3Client.listObjectsV2Paginator(listReq)) {
-        for (S3Object obj : resp.contents()) {
-          batch.add(ObjectIdentifier.builder().key(obj.key()).build());
-          if (batch.size() == 1000) {
-            // flushBatchDelete() doit déjà mapper + utiliser BucketOperationException(String,
-            // Throwable)
-            flushBatchDelete(bucket, batch);
-          }
-        }
-      }
-
-      flushBatchDelete(bucket, batch);
-
-    } catch (NoSuchBucketException e) {
-      throw new BucketObjectNotFoundException("Resource not found.");
-
-    } catch (S3Exception e) {
-      int sc = e.statusCode();
-
-      if (sc == 404) {
-        throw new BucketObjectNotFoundException("Resource not found.");
-      }
-      if (sc == 400) {
-        throw new InvalidBucketPathException("Invalid path.");
-      }
-
-      throw new BucketOperationException("Operation failed.", e);
-
-    } catch (SdkException e) {
-      throw new BucketOperationException("Operation failed.", e);
-
-    } finally {
-      batch.clear();
-    }
+    deletePrefixRecursively(bucket, keyOrPrefix);
   }
 
   @Override
@@ -297,6 +243,41 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
         return false;
       }
       throw new BucketOperationException("Error while checking existence of " + remote, e);
+    }
+  }
+
+  private void deletePrefixRecursively(String bucket, String prefix) {
+    ListObjectsV2Request listReq =
+        ListObjectsV2Request.builder().bucket(bucket).prefix(prefix).build();
+
+    List<ObjectIdentifier> batch = new ArrayList<>(DELETE_BATCH_SIZE);
+
+    try {
+      for (ListObjectsV2Response resp : s3Client.listObjectsV2Paginator(listReq)) {
+        for (S3Object obj : resp.contents()) {
+          batch.add(ObjectIdentifier.builder().key(obj.key()).build());
+
+          if (batch.size() == DELETE_BATCH_SIZE) {
+            // flushBatchDelete() mappe déjà les erreurs + clear le batch
+            flushBatchDelete(bucket, batch);
+          }
+        }
+      }
+
+      flushBatchDelete(bucket, batch);
+
+    } catch (NoSuchBucketException e) {
+      throw new BucketObjectNotFoundException("Resource not found.");
+
+    } catch (S3Exception e) {
+      // Ici on mappe uniquement les erreurs de la phase "listing"
+      throw AwsS3AdapterHelper.mapS3Exception(e);
+
+    } catch (SdkException e) {
+      throw new BucketOperationException("Operation failed.", e);
+
+    } finally {
+      batch.clear(); // redondant car flushBatchDelete() clear déjà, mais ok en sécurité
     }
   }
 

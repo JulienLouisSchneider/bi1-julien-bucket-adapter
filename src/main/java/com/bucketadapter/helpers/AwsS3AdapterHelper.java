@@ -66,4 +66,12 @@ public final class AwsS3AdapterHelper {
 
     return new BucketOperationException("Operation failed.", e);
   }
+
+  public static RemoteRef requireKeyOrPrefix(RemoteRef ref) {
+    String kp = ref.keyOrPrefix();
+    if (kp == null || kp.isBlank()) {
+      throw new InvalidBucketPathException("Invalid path.");
+    }
+    return ref;
+  }
 }
