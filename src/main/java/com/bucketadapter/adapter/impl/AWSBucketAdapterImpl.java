@@ -61,27 +61,11 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
 
   @Override
   public byte[] download(String remote) {
+    AwsS3AdapterHelper.RemoteRef ref =
+        AwsS3AdapterHelper.requireObjectKey(AwsS3AdapterHelper.parseRemote(remote));
 
-    if (remote == null || remote.isBlank()) {
-      throw new InvalidBucketPathException("Invalid path.");
-    }
-
-    final String bucket;
-    final String key;
-
-    try {
-      String[] arrayRemote = BucketAndPrefix(remote);
-      bucket = arrayRemote[BUCKET];
-      key = arrayRemote[PREFIX];
-    } catch (RuntimeException e) {
-      throw new InvalidBucketPathException("Invalid path.");
-    }
-
-    if (bucket == null || bucket.isBlank() || key == null || key.isBlank() || key.endsWith("/")) {
-      throw new InvalidBucketPathException("Invalid path.");
-    }
-
-    GetObjectRequest req = GetObjectRequest.builder().bucket(bucket).key(key).build();
+    GetObjectRequest req =
+        GetObjectRequest.builder().bucket(ref.bucket()).key(ref.keyOrPrefix()).build();
 
     try {
       return s3Client.getObject(req, ResponseTransformer.toBytes()).asByteArray();
@@ -90,16 +74,7 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
       throw new BucketObjectNotFoundException("Resource not found.");
 
     } catch (S3Exception e) {
-      int sc = e.statusCode();
-
-      if (sc == 404) {
-        throw new BucketObjectNotFoundException("Resource not found.");
-      }
-      if (sc == 400) {
-        throw new InvalidBucketPathException("Invalid path.");
-      }
-
-      throw new BucketOperationException("Operation failed.", e);
+      throw AwsS3AdapterHelper.mapS3Exception(e);
 
     } catch (SdkException e) {
       throw new BucketOperationException("Operation failed.", e);
