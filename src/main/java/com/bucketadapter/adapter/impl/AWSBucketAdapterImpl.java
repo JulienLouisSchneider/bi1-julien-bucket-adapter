@@ -12,6 +12,7 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
+import com.bucketadapter.helpers.AwsS3AdapterHelper;
 
 import java.time.Duration;
 import java.util.*;
@@ -36,30 +37,13 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
 
   @Override
   public void upload(String remote, byte[] object) {
+    AwsS3AdapterHelper.requirePayload(object);
 
-    if (remote == null || remote.isBlank()) {
-      throw new InvalidBucketPathException("Invalid path.");
-    }
-    if (object == null) {
-      throw new InvalidBucketPathException("Invalid request.");
-    }
+    AwsS3AdapterHelper.RemoteRef ref =
+        AwsS3AdapterHelper.requireObjectKey(AwsS3AdapterHelper.parseRemote(remote));
 
-    final String bucket;
-    final String key;
-
-    try {
-      String[] arrayRemote = BucketAndPrefix(remote);
-      bucket = arrayRemote[BUCKET];
-      key = arrayRemote[PREFIX];
-    } catch (RuntimeException e) {
-      throw new InvalidBucketPathException("Invalid path.");
-    }
-
-    if (bucket == null || bucket.isBlank() || key == null || key.isBlank() || key.endsWith("/")) {
-      throw new InvalidBucketPathException("Invalid path.");
-    }
-
-    PutObjectRequest req = PutObjectRequest.builder().bucket(bucket).key(key).build();
+    PutObjectRequest req =
+        PutObjectRequest.builder().bucket(ref.bucket()).key(ref.keyOrPrefix()).build();
 
     try {
       s3Client.putObject(req, RequestBody.fromBytes(object));
@@ -68,16 +52,7 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
       throw new BucketObjectNotFoundException("Resource not found.");
 
     } catch (S3Exception e) {
-      int sc = e.statusCode();
-
-      if (sc == 404) {
-        throw new BucketObjectNotFoundException("Resource not found.");
-      }
-      if (sc == 400) {
-        throw new InvalidBucketPathException("Invalid path.");
-      }
-
-      throw new BucketOperationException("Operation failed.", e);
+      throw AwsS3AdapterHelper.mapS3Exception(e);
 
     } catch (SdkException e) {
       throw new BucketOperationException("Operation failed.", e);
