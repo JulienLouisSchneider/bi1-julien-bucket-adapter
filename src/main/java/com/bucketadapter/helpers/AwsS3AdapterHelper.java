@@ -81,4 +81,11 @@ public final class AwsS3AdapterHelper {
     }
     return keyOrPrefix.endsWith("/") ? keyOrPrefix : keyOrPrefix + "/";
   }
+
+  public static void requireShareExpirationSeconds(int expirationTimeSeconds) {
+    // AWS S3 presigned URL: max 7 days = 604800 seconds
+    if (expirationTimeSeconds < 1 || expirationTimeSeconds > 604800) {
+      throw new InvalidBucketPathException("Invalid request.");
+    }
+  }
 }

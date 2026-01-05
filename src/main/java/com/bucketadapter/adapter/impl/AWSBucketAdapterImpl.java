@@ -148,35 +148,20 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
 
   @Override
   public String share(String remote, int expirationTime) {
-    if (remote == null || remote.isBlank()) {
-      throw new InvalidBucketPathException("Invalid path.");
-    }
+    AwsS3AdapterHelper.requireShareExpirationSeconds(expirationTime);
 
-    if (expirationTime < 1 || expirationTime > 604800) {
-      throw new InvalidBucketPathException("Invalid request.");
-    }
+    AwsS3AdapterHelper.RemoteRef ref =
+        AwsS3AdapterHelper.requireObjectKey(AwsS3AdapterHelper.parseRemote(remote));
 
-    final String bucket;
-    final String key;
-
-    try {
-      String[] arrayRemote = BucketAndPrefix(remote);
-      bucket = arrayRemote[BUCKET];
-      key = arrayRemote[PREFIX];
-    } catch (RuntimeException e) {
-      throw new InvalidBucketPathException("Invalid path.");
-    }
-
-    if (bucket == null || bucket.isBlank() || key == null || key.isBlank() || key.endsWith("/")) {
-      throw new InvalidBucketPathException("Invalid path.");
-    }
-
+    // On conserve ta logique actuelle : vérifier l'existence avant de presigner
+    // (même si, techniquement, presigner peut fonctionner même si l'objet n'existe pas).
     if (!doesExists(remote)) {
       throw new InvalidBucketPathException("File not found.");
     }
 
     try {
-      GetObjectRequest getReq = GetObjectRequest.builder().bucket(bucket).key(key).build();
+      GetObjectRequest getReq =
+          GetObjectRequest.builder().bucket(ref.bucket()).key(ref.keyOrPrefix()).build();
 
       GetObjectPresignRequest presignReq =
           GetObjectPresignRequest.builder()
@@ -190,20 +175,9 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
       throw new BucketObjectNotFoundException("Resource not found.");
 
     } catch (S3Exception e) {
-      int sc = e.statusCode();
-
-      if (sc == 404) {
-        throw new BucketObjectNotFoundException("Resource not found.");
-      }
-      if (sc == 400) {
-        throw new InvalidBucketPathException("Invalid path.");
-      }
-
-      // 403/429/5xx, etc.
-      throw new BucketOperationException("Operation failed.", e);
+      throw AwsS3AdapterHelper.mapS3Exception(e);
 
     } catch (SdkException e) {
-      // credentials, réseau, timeouts, etc.
       throw new BucketOperationException("Operation failed.", e);
     }
   }
