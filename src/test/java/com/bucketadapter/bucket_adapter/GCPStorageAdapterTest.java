@@ -22,7 +22,6 @@ import com.google.cloud.ReadChannel;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
-import com.google.cloud.storage.HttpMethod;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
 import java.io.IOException;
@@ -49,8 +48,7 @@ public class GCPStorageAdapterTest {
   void setUp() throws NoSuchMethodException {
     storage = mock(Storage.class);
     adapter = new GCPBucketAdapterImpl(storage);
-    doesExistsMethod =
-        GCPBucketAdapterImpl.class.getDeclaredMethod("doesExists", String.class);
+    doesExistsMethod = GCPBucketAdapterImpl.class.getDeclaredMethod("doesExists", String.class);
     doesExistsMethod.setAccessible(true);
   }
 
@@ -125,7 +123,8 @@ public class GCPStorageAdapterTest {
     when(storage.delete(any(BlobId.class))).thenReturn(false);
 
     BucketOperationException ex =
-        assertThrows(BucketOperationException.class, () -> adapter.delete("archive/ghost.txt", false));
+        assertThrows(
+            BucketOperationException.class, () -> adapter.delete("archive/ghost.txt", false));
     assertTrue(ex.getCause() instanceof BucketObjectNotFoundException);
   }
 
@@ -311,7 +310,8 @@ public class GCPStorageAdapterTest {
         BucketObjectNotFoundException.class, () -> invokeDoesExists("media/photos/ghost.jpg"));
 
     when(storage.get(any(BlobId.class))).thenThrow(new StorageException(400, "bad path"));
-    assertThrows(InvalidBucketPathException.class, () -> invokeDoesExists("media/photos/ghost.jpg"));
+    assertThrows(
+        InvalidBucketPathException.class, () -> invokeDoesExists("media/photos/ghost.jpg"));
   }
 
   private boolean invokeDoesExists(String remote) {
