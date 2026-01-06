@@ -29,10 +29,14 @@ jobs:
           java-version: ${{ matrix.java }}
           cache: maven
 
-      - name: Build & test (Maven)
+      - name: Purge surefire artifacts (avoid corrupted cache)
+        run: |
+          rm -rf ~/.m2/repository/org/apache/maven/plugins/maven-surefire-plugin
+          rm -rf ~/.m2/repository/org/apache/maven/surefire
+
+      - name: Build & test (Maven) with retries
         run: |
           ./mvnw -B -ntp \
-            -Dmaven.wagon.http.retryHandler.count=5 \
+            -Dmaven.wagon.http.retryHandler.count=6 \
             -Dmaven.wagon.http.retryHandler.requestSentEnabled=true \
             clean verify
-      
