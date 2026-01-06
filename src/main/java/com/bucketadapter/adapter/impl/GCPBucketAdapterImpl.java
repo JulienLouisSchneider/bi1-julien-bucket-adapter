@@ -29,11 +29,8 @@ public class GCPBucketAdapterImpl implements BucketAdapter {
 
   @Override
   public void upload(String remote, byte[] object) {
-    AdapterHelper.requirePayload(object); // null check :contentReference[oaicite:2]{index=2}
-    var ref =
-        AdapterHelper.requireObjectKey(
-            AdapterHelper.parseRemote(
-                remote)); // interdit "" et "/" :contentReference[oaicite:3]{index=3}
+    AdapterHelper.requirePayload(object);
+    var ref = AdapterHelper.requireObjectKey(AdapterHelper.parseRemote(remote));
 
     try {
       BlobId id = BlobId.of(ref.bucket(), ref.keyOrPrefix());
@@ -49,7 +46,7 @@ public class GCPBucketAdapterImpl implements BucketAdapter {
 
   @Override
   public byte[] download(String remote) {
-    // remote supporte: "bucket/key" ou "gs://bucket/key"
+
     var ref = AdapterHelper.requireObjectKey(AdapterHelper.parseRemote(remote));
 
     BlobId id = BlobId.of(ref.bucket(), ref.keyOrPrefix());
@@ -98,9 +95,8 @@ public class GCPBucketAdapterImpl implements BucketAdapter {
       }
     }
 
-    // Recursive delete (prefix)
     if (keyOrPrefix == null || keyOrPrefix.isBlank()) {
-      // évite un delete “tout le bucket”
+
       throw new InvalidBucketPathException("Invalid path.");
     }
 
@@ -170,7 +166,7 @@ public class GCPBucketAdapterImpl implements BucketAdapter {
       return new ArrayList<>(results);
 
     } catch (StorageException e) {
-      throw AdapterHelper.mapGcsException(e); // ton mapping (404 -> not found, etc.)
+      throw AdapterHelper.mapGcsException(e);
     } catch (RuntimeException e) {
       throw new BucketOperationException("Operation failed.", e);
     }
@@ -205,6 +201,33 @@ public class GCPBucketAdapterImpl implements BucketAdapter {
 
     } catch (StorageException e) {
       throw AdapterHelper.mapGcsException(e);
+    } catch (RuntimeException e) {
+      throw new BucketOperationException("Operation failed.", e);
+    }
+  }
+
+  private boolean doesExists(String remote) {
+    AdapterHelper.RemoteRef ref = AdapterHelper.requireObjectKey(AdapterHelper.parseRemote(remote));
+
+    BlobId id = BlobId.of(ref.bucket(), ref.keyOrPrefix());
+
+    try {
+      Blob blob = storage.get(id);
+      return blob != null;
+
+    } catch (StorageException e) {
+      int code = e.getCode();
+
+      // Bucket introuvable / pas accessible (ou autre 404 "bucket-level")
+      if (code == 404) {
+        throw new BucketObjectNotFoundException("Resource not found.");
+      }
+      if (code == 400) {
+        throw new InvalidBucketPathException("Invalid path.");
+      }
+
+      throw new BucketOperationException("Operation failed.", e);
+
     } catch (RuntimeException e) {
       throw new BucketOperationException("Operation failed.", e);
     }
