@@ -1,0 +1,8 @@
+services:
+  app:
+    build: .
+    image: bucket-adapter:latest
+    ports:
+      - "8081:8080"
+    env_file:
+      - .env
