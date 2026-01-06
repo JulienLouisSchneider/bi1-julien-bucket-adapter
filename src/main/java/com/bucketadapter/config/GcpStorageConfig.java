@@ -29,7 +29,7 @@ public class GcpStorageConfig {
     StorageOptions.Builder builder = StorageOptions.newBuilder().setCredentials(creds);
 
     // Le projectId peut aussi être auto-détecté ou fourni via GOOGLE_CLOUD_PROJECT
-    if (projectId != null && !projectId.isBlank()) {
+    if (!projectId.isBlank()) {
       builder.setProjectId(projectId);
     }
 
