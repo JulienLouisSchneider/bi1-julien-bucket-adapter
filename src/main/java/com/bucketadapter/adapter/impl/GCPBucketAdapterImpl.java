@@ -183,8 +183,6 @@ public class GCPBucketAdapterImpl implements BucketAdapter {
 
     try {
       BlobId blobId = BlobId.of(ref.bucket(), ref.keyOrPrefix());
-
-      // Optionnel mais "AWS-like": on refuse de signer si l’objet n’existe pas
       Blob existing = storage.get(blobId);
       if (existing == null) {
         throw new BucketObjectNotFoundException("Resource not found.");
