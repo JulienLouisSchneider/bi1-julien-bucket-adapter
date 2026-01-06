@@ -2,9 +2,13 @@ name: CI
 
 on:
   push:
-    branches: [ "main", "develop" ]
+    branches:
+      - main
+      - develop
   pull_request:
-    branches: [ "main", "develop" ]
+    branches:
+      - main
+      - develop
 
 permissions:
   contents: read
@@ -16,7 +20,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        java: [ "21" ]
+        java:
+          - "21"
 
     steps:
       - name: Checkout
@@ -29,10 +34,15 @@ jobs:
           java-version: ${{ matrix.java }}
           cache: maven
 
-      - name: Build & test (Maven)
+      - name: Purge surefire artifacts (avoid corrupted cache)
         run: |
-          ./mvnw -B -ntp \
-            -Dmaven.wagon.http.retryHandler.count=5 \
+          rm -rf ~/.m2/repository/org/apache/maven/plugins/maven-surefire-plugin
+          rm -rf ~/.m2/repository/org/apache/maven/surefire
+
+      - name: Build & test (Maven) with mirror + retries
+        run: |
+          mvn -B -ntp -s .github/maven-settings.xml \
+            -Dmaven.wagon.http.retryHandler.count=6 \
             -Dmaven.wagon.http.retryHandler.requestSentEnabled=true \
             clean verify
       

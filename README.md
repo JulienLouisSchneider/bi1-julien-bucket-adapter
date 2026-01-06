@@ -72,3 +72,7 @@ Go to Swagger [Documentaion](http://localhost:8080/swagger-ui/index.html#/bucket
 ## Contact
 
 * How to get in contact with you? Discord, Trello, Issue?
+
+## Docs
+
+https://docs.cloud.google.com/storage/docs/reference/libraries

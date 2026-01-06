@@ -5,14 +5,16 @@ import com.bucketadapter.bucketadapterexceptions.BucketOperationException;
 import com.bucketadapter.bucketadapterexceptions.InvalidBucketPathException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import com.google.cloud.storage.StorageException;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import java.util.Set;
 import software.amazon.awssdk.services.s3.model.DeleteObjectsResponse;
 
-public final class AwsS3AdapterHelper {
+public final class AdapterHelper {
 
-  private AwsS3AdapterHelper() {}
+  private AdapterHelper() {}
 
   private static final Pattern BUCKET_PREFIX = Pattern.compile("^/*([^/]+)(?:/(.*))?$");
 
@@ -25,14 +27,29 @@ public final class AwsS3AdapterHelper {
     }
 
     String path = remote.trim();
-    Matcher m = BUCKET_PREFIX.matcher(path);
 
+    // Support gs://bucket/key
+    if (path.startsWith("gs://")) {
+      path = path.substring(5);
+    }
+
+    // Enlève les / de tête (utile si key commence par / après gs://)
+    while (path.startsWith("/")) {
+      path = path.substring(1);
+    }
+
+    Matcher m = BUCKET_PREFIX.matcher(path);
     if (!m.matches()) {
       throw new InvalidBucketPathException("Invalid path.");
     }
 
     String bucket = m.group(1);
     String keyOrPrefix = (m.group(2) == null) ? "" : m.group(2);
+
+    // Nettoie aussi un éventuel "/" au début du key
+    while (keyOrPrefix.startsWith("/")) {
+      keyOrPrefix = keyOrPrefix.substring(1);
+    }
 
     if (bucket == null || bucket.isBlank()) {
       throw new InvalidBucketPathException("Invalid path.");
@@ -132,5 +149,12 @@ public final class AwsS3AdapterHelper {
     throw new BucketOperationException(
         "Operation failed.",
         new IllegalStateException("Provider reported partial delete failure."));
+  }
+
+  public static RuntimeException mapGcsException(StorageException e) {
+    int code = e.getCode();
+    if (code == 404) return new BucketObjectNotFoundException("Resource not found.");
+    if (code == 400) return new InvalidBucketPathException("Invalid path.");
+    return new BucketOperationException("Operation failed.", e);
   }
 }

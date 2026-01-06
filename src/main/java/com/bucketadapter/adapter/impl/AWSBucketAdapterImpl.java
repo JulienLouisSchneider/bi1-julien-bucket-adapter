@@ -26,7 +26,7 @@ import software.amazon.awssdk.services.s3.model.S3Object;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 
-import com.bucketadapter.helpers.AwsS3AdapterHelper;
+import com.bucketadapter.helpers.AdapterHelper;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -50,10 +50,9 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
 
   @Override
   public void upload(String remote, byte[] object) {
-    AwsS3AdapterHelper.requirePayload(object);
+    AdapterHelper.requirePayload(object);
 
-    AwsS3AdapterHelper.RemoteRef ref =
-        AwsS3AdapterHelper.requireObjectKey(AwsS3AdapterHelper.parseRemote(remote));
+    AdapterHelper.RemoteRef ref = AdapterHelper.requireObjectKey(AdapterHelper.parseRemote(remote));
 
     PutObjectRequest req =
         PutObjectRequest.builder().bucket(ref.bucket()).key(ref.keyOrPrefix()).build();
@@ -65,7 +64,7 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
       throw new BucketObjectNotFoundException("Resource not found.");
 
     } catch (S3Exception e) {
-      throw AwsS3AdapterHelper.mapS3Exception(e);
+      throw AdapterHelper.mapS3Exception(e);
 
     } catch (SdkException e) {
       throw new BucketOperationException("Operation failed.", e);
@@ -74,8 +73,7 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
 
   @Override
   public byte[] download(String remote) {
-    AwsS3AdapterHelper.RemoteRef ref =
-        AwsS3AdapterHelper.requireObjectKey(AwsS3AdapterHelper.parseRemote(remote));
+    AdapterHelper.RemoteRef ref = AdapterHelper.requireObjectKey(AdapterHelper.parseRemote(remote));
 
     GetObjectRequest req =
         GetObjectRequest.builder().bucket(ref.bucket()).key(ref.keyOrPrefix()).build();
@@ -87,7 +85,7 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
       throw new BucketObjectNotFoundException("Resource not found.");
 
     } catch (S3Exception e) {
-      throw AwsS3AdapterHelper.mapS3Exception(e);
+      throw AdapterHelper.mapS3Exception(e);
 
     } catch (SdkException e) {
       throw new BucketOperationException("Operation failed.", e);
@@ -96,14 +94,14 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
 
   @Override
   public void delete(String remote, boolean recursive) {
-    AwsS3AdapterHelper.RemoteRef ref =
-        AwsS3AdapterHelper.requireKeyOrPrefix(AwsS3AdapterHelper.parseRemote(remote));
+    AdapterHelper.RemoteRef ref =
+        AdapterHelper.requireKeyOrPrefix(AdapterHelper.parseRemote(remote));
 
     String bucket = ref.bucket();
     String keyOrPrefix = ref.keyOrPrefix();
 
     if (!recursive) {
-      AwsS3AdapterHelper.requireObjectKey(ref);
+      AdapterHelper.requireObjectKey(ref);
       deleteOne(bucket, keyOrPrefix);
       return;
     }
@@ -118,10 +116,10 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
 
   @Override
   public List<String> list(String remote, boolean recursive) {
-    AwsS3AdapterHelper.RemoteRef ref = AwsS3AdapterHelper.parseRemote(remote);
+    AdapterHelper.RemoteRef ref = AdapterHelper.parseRemote(remote);
 
     String bucket = ref.bucket();
-    String prefix = AwsS3AdapterHelper.normalizeListPrefix(ref.keyOrPrefix());
+    String prefix = AdapterHelper.normalizeListPrefix(ref.keyOrPrefix());
 
     ListObjectsV2Request.Builder builder =
         ListObjectsV2Request.builder().bucket(bucket).prefix(prefix);
@@ -148,7 +146,7 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
       throw new BucketObjectNotFoundException("Resource not found.");
 
     } catch (S3Exception e) {
-      throw AwsS3AdapterHelper.mapS3Exception(e);
+      throw AdapterHelper.mapS3Exception(e);
 
     } catch (SdkException e) {
       throw new BucketOperationException("Operation failed.", e);
@@ -157,10 +155,9 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
 
   @Override
   public String share(String remote, int expirationTime) {
-    AwsS3AdapterHelper.requireShareExpirationSeconds(expirationTime);
+    AdapterHelper.requireShareExpirationSeconds(expirationTime);
 
-    AwsS3AdapterHelper.RemoteRef ref =
-        AwsS3AdapterHelper.requireObjectKey(AwsS3AdapterHelper.parseRemote(remote));
+    AdapterHelper.RemoteRef ref = AdapterHelper.requireObjectKey(AdapterHelper.parseRemote(remote));
 
     if (!doesExists(remote)) {
       throw new InvalidBucketPathException("File not found.");
@@ -182,7 +179,7 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
       throw new BucketObjectNotFoundException("Resource not found.");
 
     } catch (S3Exception e) {
-      throw AwsS3AdapterHelper.mapS3Exception(e);
+      throw AdapterHelper.mapS3Exception(e);
 
     } catch (SdkException e) {
       throw new BucketOperationException("Operation failed.", e);
@@ -190,8 +187,7 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
   }
 
   private boolean doesExists(String remote) {
-    AwsS3AdapterHelper.RemoteRef ref =
-        AwsS3AdapterHelper.requireObjectKey(AwsS3AdapterHelper.parseRemote(remote));
+    AdapterHelper.RemoteRef ref = AdapterHelper.requireObjectKey(AdapterHelper.parseRemote(remote));
 
     HeadObjectRequest req =
         HeadObjectRequest.builder().bucket(ref.bucket()).key(ref.keyOrPrefix()).build();
@@ -221,7 +217,7 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
   }
 
   private void deletePrefixRecursively(String bucket, String prefix) {
-    AwsS3AdapterHelper.requireBucketName(bucket);
+    AdapterHelper.requireBucketName(bucket);
 
     ListObjectsV2Request listReq =
         ListObjectsV2Request.builder().bucket(bucket).prefix(prefix).build();
@@ -246,7 +242,7 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
 
     } catch (S3Exception e) {
 
-      throw AwsS3AdapterHelper.mapS3Exception(e);
+      throw AdapterHelper.mapS3Exception(e);
 
     } catch (SdkException e) {
       throw new BucketOperationException("Operation failed.", e);
@@ -257,8 +253,8 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
   }
 
   private void deleteOne(String bucket, String key) {
-    AwsS3AdapterHelper.requireBucketName(bucket);
-    AwsS3AdapterHelper.requireObjectKeyString(key);
+    AdapterHelper.requireBucketName(bucket);
+    AdapterHelper.requireObjectKeyString(key);
 
     try {
       s3Client.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(key).build());
@@ -267,7 +263,7 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
       throw new BucketObjectNotFoundException("Resource not found.");
 
     } catch (S3Exception e) {
-      throw AwsS3AdapterHelper.mapS3Exception(e);
+      throw AdapterHelper.mapS3Exception(e);
 
     } catch (SdkException e) {
       throw new BucketOperationException("Operation failed.", e);
@@ -280,7 +276,7 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
     }
     if (batch.isEmpty()) return;
 
-    AwsS3AdapterHelper.requireBucketName(bucket);
+    AdapterHelper.requireBucketName(bucket);
 
     try {
       DeleteObjectsResponse resp =
@@ -290,13 +286,13 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
                   .delete(Delete.builder().objects(batch).quiet(true).build())
                   .build());
 
-      AwsS3AdapterHelper.throwIfBatchDeleteHadErrors(resp);
+      AdapterHelper.throwIfBatchDeleteHadErrors(resp);
 
     } catch (NoSuchBucketException e) {
       throw new BucketObjectNotFoundException("Resource not found.");
 
     } catch (S3Exception e) {
-      throw AwsS3AdapterHelper.mapS3Exception(e);
+      throw AdapterHelper.mapS3Exception(e);
 
     } catch (SdkException e) {
       throw new BucketOperationException("Operation failed.", e);
