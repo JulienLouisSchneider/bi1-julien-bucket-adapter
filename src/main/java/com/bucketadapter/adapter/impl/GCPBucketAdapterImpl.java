@@ -13,6 +13,7 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.ReadChannel;
 import com.google.cloud.storage.HttpMethod;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.springframework.stereotype.Component;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
@@ -28,6 +29,10 @@ import java.util.concurrent.TimeUnit;
 @Component("GCP")
 public class GCPBucketAdapterImpl implements BucketAdapter {
 
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP2",
+      justification =
+          "Storage est injecté (bean) et n'est jamais exposé; usage interne uniquement.")
   private final Storage storage;
 
   public GCPBucketAdapterImpl(Storage storage) {
@@ -211,6 +216,9 @@ public class GCPBucketAdapterImpl implements BucketAdapter {
     }
   }
 
+  @SuppressFBWarnings(
+      value = "UPM_UNCALLED_PRIVATE_METHOD",
+      justification = "Méthode conservée pour usage futur / lisibilité.")
   private boolean doesExists(String remote) {
     AdapterHelper.RemoteRef ref = AdapterHelper.requireObjectKey(AdapterHelper.parseRemote(remote));
 

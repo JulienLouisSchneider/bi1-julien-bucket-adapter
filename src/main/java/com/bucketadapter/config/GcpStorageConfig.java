@@ -18,7 +18,7 @@ public class GcpStorageConfig {
     String credsPath = getConfig("GOOGLE_APPLICATION_CREDENTIALS", "GCP credentials file");
 
     GoogleCredentials creds;
-    if (credsPath != null && !credsPath.isBlank()) {
+    if (!credsPath.isBlank()) {
       try (FileInputStream in = new FileInputStream(credsPath)) {
         creds = GoogleCredentials.fromStream(in);
       }
