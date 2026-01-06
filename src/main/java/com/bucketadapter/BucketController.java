@@ -18,12 +18,18 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/objects")
 public class BucketController {
 
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP2",
+      justification = "BucketService est injecté par Spring (bean); le controller ne l’expose pas.")
   private final BucketService bucketService;
 
   public BucketController(BucketService bucketService) {
