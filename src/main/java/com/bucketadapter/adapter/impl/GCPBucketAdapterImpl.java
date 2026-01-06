@@ -8,9 +8,15 @@ import com.bucketadapter.helpers.AdapterHelper;
 import com.google.api.gax.paging.Page;
 import com.google.cloud.storage.*;
 import org.springframework.stereotype.Component;
-import com.bucketadapter.config.GcpStorageConfig;
+import com.google.cloud.ReadChannel;
+import com.google.cloud.storage.BlobId;
+import com.google.cloud.storage.StorageException;
+import java.io.ByteArrayOutputStream;
+import java.nio.ByteBuffer;
 
+import java.net.URL;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @Component("GCP")
 public class GCPBucketAdapterImpl implements BucketAdapter {
@@ -43,7 +49,29 @@ public class GCPBucketAdapterImpl implements BucketAdapter {
 
   @Override
   public byte[] download(String remote) {
-    return new byte[0];
+    // remote supporte: "bucket/key" ou "gs://bucket/key"
+    var ref = AdapterHelper.requireObjectKey(AdapterHelper.parseRemote(remote));
+
+    BlobId id = BlobId.of(ref.bucket(), ref.keyOrPrefix());
+
+    try (ReadChannel reader = storage.reader(id);
+        ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+
+      ByteBuffer buf = ByteBuffer.allocate(64 * 1024);
+
+      while (reader.read(buf) > 0) {
+        buf.flip();
+        out.write(buf.array(), 0, buf.limit());
+        buf.clear();
+      }
+
+      return out.toByteArray();
+
+    } catch (StorageException e) {
+      throw AdapterHelper.mapGcsException(e);
+    } catch (Exception e) {
+      throw new BucketOperationException("Operation failed.", e);
+    }
   }
 
   @Override
@@ -150,6 +178,35 @@ public class GCPBucketAdapterImpl implements BucketAdapter {
 
   @Override
   public String share(String remote, int expirationTime) {
-    return "";
+    // Valide 1..604800 (7 jours) + remote cible un objet
+    AdapterHelper.requireShareExpirationSeconds(expirationTime);
+    var ref = AdapterHelper.requireObjectKey(AdapterHelper.parseRemote(remote));
+
+    try {
+      BlobId blobId = BlobId.of(ref.bucket(), ref.keyOrPrefix());
+
+      // Optionnel mais "AWS-like": on refuse de signer si l’objet n’existe pas
+      Blob existing = storage.get(blobId);
+      if (existing == null) {
+        throw new BucketObjectNotFoundException("Resource not found.");
+      }
+
+      BlobInfo blobInfo = BlobInfo.newBuilder(blobId).build();
+
+      URL url =
+          storage.signUrl(
+              blobInfo,
+              expirationTime,
+              TimeUnit.SECONDS,
+              Storage.SignUrlOption.withV4Signature(),
+              Storage.SignUrlOption.httpMethod(HttpMethod.GET));
+
+      return url.toString();
+
+    } catch (StorageException e) {
+      throw AdapterHelper.mapGcsException(e);
+    } catch (RuntimeException e) {
+      throw new BucketOperationException("Operation failed.", e);
+    }
   }
 }
