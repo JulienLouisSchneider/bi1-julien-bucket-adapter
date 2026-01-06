@@ -39,9 +39,10 @@ jobs:
           rm -rf ~/.m2/repository/org/apache/maven/plugins/maven-surefire-plugin
           rm -rf ~/.m2/repository/org/apache/maven/surefire
 
-      - name: Build & test (Maven) with retries
+      - name: Build & test (Maven) with mirror + retries
         run: |
-          mvn -B -ntp \
+          mvn -B -ntp -s .github/maven-settings.xml \
             -Dmaven.wagon.http.retryHandler.count=6 \
             -Dmaven.wagon.http.retryHandler.requestSentEnabled=true \
             clean verify
+      
