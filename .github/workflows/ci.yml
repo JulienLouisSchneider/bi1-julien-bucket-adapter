@@ -2,9 +2,13 @@ name: CI
 
 on:
   push:
-    branches: [ "main", "develop" ]
+    branches:
+      - main
+      - develop
   pull_request:
-    branches: [ "main", "develop" ]
+    branches:
+      - main
+      - develop
 
 permissions:
   contents: read
@@ -16,7 +20,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        java: [ "21" ]
+        java:
+          - "21"
 
     steps:
       - name: Checkout
@@ -36,7 +41,7 @@ jobs:
 
       - name: Build & test (Maven) with retries
         run: |
-          ./mvnw -B -ntp \
+          mvn -B -ntp \
             -Dmaven.wagon.http.retryHandler.count=6 \
             -Dmaven.wagon.http.retryHandler.requestSentEnabled=true \
             clean verify
