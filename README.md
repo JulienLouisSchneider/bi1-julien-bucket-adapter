@@ -69,6 +69,12 @@ The application relies on external configuration to select the storage provider 
 1. Copy the `.env.example` file to a `.env` file using this command : `cp .env.example .env`.
 2. Configure variables in `.env` file.
 
+Default application port (override if needed):
+
+```bash
+SEREVER_PORT=8090
+```
+
 #### AWS configuration
 
 Required variables:
