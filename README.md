@@ -166,9 +166,7 @@ You can use Insomnia for commands. Import the Insomnia_2026-01-09.yaml file into
 
 ##### Curl
 
-1. To use the API you can read this [documentation](docs/api-documentation.md).
-2. You can also find the [online documentation](https://dieperid.github.io/bucket-adapter/) using Redoc to publish the
-   API documentation.
+To use the API you can read this [documentation](docs/curl-route.md).
 
 **How to update the API documentation ?**
 
@@ -182,61 +180,63 @@ mvn spring-boot:run
 docker compose up --build
 ```
 
-When your app is running, you'll be able generate the API documentaion in `json` format or `yaml` format.
-
-> Note : Redoc use the `yaml` format to display the API documentation in web interface
-
-To generate run one if these command :
-
-```bash
-# JSON format
-curl http://localhost:8080/v3/api-docs > docs/openapi.json
-
-# YAML format
-curl http://localhost:8080/v3/api-docs > docs/openapi.yaml
-```
-
 ## Directory structure
 
 ```bash
 .
-├── docker-compose.yml
 ├── Dockerfile
-├── Doxyfile
+├── HELP.md
+├── Insomnia_2026-01-09.yaml
+├── README.md
+├── bi1-julien.json
+├── checkstyle.xml
+├── docker-compose.yml
+├── docs
 ├── mvnw
 ├── mvnw.cmd
+├── package-lock.json
 ├── pom.xml
-├── README.md
-├── setup-test-data.sh
-├── docs                                                    # Documentatin folder
-└── src
-    ├── main
-    │   ├── java
-    │   │   └── com
-    │   │       └── example
-    │   │           └── bucketadapter
-    │   │               ├── adapter
-    │   │               │   ├── BucketAdapter.java
-    │   │               │   └── impl                        # Adapter implementation
-    │   │               ├── BucketAdapterApplication.java
-    │   │               ├── config
-    │   │               ├── controller
-    │   │               ├── exception
-    │   │               ├── factory
-    │   │               ├── model
-    │   │               └── service
-    │   └── resources
-    │       ├── application.properties
-    │       ├── static
-    │       └── templates
-    └── test
-        └── java
-            └── com
-                └── example
-                    └── bucketadapter
-                        ├── adapter
-                        │   └── impl
-                        └── BucketAdapterApplicationTests.java
+├── qodana.yaml
+├──  src
+│    ├── main
+│    │   ├── java
+│    │   │   └── com
+│    │   │       └── bucketadapter
+│    │   │           ├── BucketAdapterApplication.java
+│    │   │           ├── BucketAdapterFactory.java
+│    │   │           ├── BucketController.java
+│    │   │           ├── BucketService.java
+│    │   │           ├── adapter
+│    │   │           │   ├── BucketAdapter.java
+│    │   │           │   └── impl
+│    │   │           │       ├── AWSBucketAdapterImpl.java
+│    │   │           │       ├── AZUREBucketAdapterImpl.java
+│    │   │           │       └── GCPBucketAdapterImpl.java
+│    │   │           ├── bucketadapterexceptions
+│    │   │           │   ├── ApiExceptionHandler.java
+│    │   │           │   ├── BucketObjectNotFoundException.java
+│    │   │           │   ├── BucketOperationException.java
+│    │   │           │   └── InvalidBucketPathException.java
+│    │   │           ├── config
+│    │   │           │   ├── AwsClientConfig.java
+│    │   │           │   ├── DotenvInitializer.java
+│    │   │           │   ├── GcpStorageConfig.java
+│    │   │           │   └── OpenApiConfig.java
+│    │   │           └── helpers
+│    │   │               └── AdapterHelper.java
+│    │   └── resources
+│    │       ├── application.properties
+│    │       ├── static
+│    │       └── templates
+│    └── test
+│        └── java
+│            └── com
+│                └── bucketadapter
+│                    └── bucket_adapter
+│                        ├── AWSBucketAdapterTest.java
+│                        └── GCPStorageAdapterTest.java
+└──  target
+
 ```
 
 ## Collaborate
