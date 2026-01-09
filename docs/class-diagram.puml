@@ -49,9 +49,13 @@ package BucketAdapterExceptions {
     class InvalidBucketPathException {}
 }
 
+package Helpers {
+    class AdapterHelper <<utility>>
+}
+
 ' ---- Relationships ----
 
-BucketAdapterController --> BucketService
+BucketController --> BucketService
 BucketService --> BucketAdapterFactory
 BucketAdapterFactory --> IBucketAdapter
 
@@ -67,6 +71,9 @@ AWSClient ..|> IAWSClient
 AWSBucketAdapterImpl ..> AWSSDK
 GCPBucketAdapterImpl ..> GCPSDK
 AZUREBucketAdapterImpl ..> AZURESDK
+
+AWSBucketAdapterImpl ..> AdapterHelper : validation & mapping
+GCPBucketAdapterImpl ..> AdapterHelper : validation & mapping
 
 ' ---- Test ----
 class TestAWSBucketAdapterImpl {
