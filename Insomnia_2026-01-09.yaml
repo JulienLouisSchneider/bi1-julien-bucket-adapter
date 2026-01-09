@@ -1,0 +1,176 @@
+type: collection.insomnia.rest/5.0
+schema_version: "5.1"
+name: BI1 V2
+meta:
+  id: wrk_91b43d08d15644e58ee39c0122a1e7a4
+  created: 1767455678340
+  modified: 1767455678340
+  description: ""
+collection:
+  - url: http://localhost:8081/api/v1/objects?remote=bi1-julien&recursive=true
+    name: List
+    meta:
+      id: req_76e09fa44d224294823294d630ead126
+      created: 1767455686527
+      modified: 1767945400141
+      isPrivate: false
+      description: ""
+      sortKey: -1767516032434
+    method: GET
+    headers:
+      - name: User-Agent
+        value: insomnia/12.2.0
+        description: ""
+        disabled: false
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8081/api/v1/objects
+    name: Create & Update
+    meta:
+      id: req_335868e3abde45a786084da440e43391
+      created: 1767473185704
+      modified: 1767945440826
+      isPrivate: false
+      description: ""
+      sortKey: -1767516032421.5
+    method: POST
+    body:
+      mimeType: multipart/form-data
+      params:
+        - name: file
+          value: ""
+          description: ""
+          disabled: false
+          fileName: /Users/julienschneider/Desktop/cpnv-project/BI1/bucket-adapter/README.md
+          type: file
+    parameters:
+      - name: remote
+        value: bi1-julien/test/uploads/InvalidGCP.java
+    headers:
+      - name: Content-Type
+        value: multipart/form-data
+      - name: User-Agent
+        value: insomnia/12.2.0
+        description: ""
+        disabled: false
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8080/api/v1/objects
+    name: Delete
+    meta:
+      id: req_f6a81f7500b64842a663f50c9d57e116
+      created: 1767515349856
+      modified: 1767945450239
+      isPrivate: false
+      description: ""
+      sortKey: -1767516032415.25
+    method: DELETE
+    parameters:
+      - name: remote
+        value: bi1-julien/test/uploads/
+        description: ""
+        disabled: false
+      - name: recursive
+        value: "True"
+        description: ""
+        disabled: false
+    headers:
+      - name: User-Agent
+        value: insomnia/12.2.0
+        description: ""
+        disabled: false
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8080/api/v1/objects/share
+    name: Share
+    meta:
+      id: req_09a3eadda6a64dd58ea7258c09444125
+      created: 1767516658772
+      modified: 1767945384993
+      isPrivate: false
+      description: ""
+      sortKey: -1767516032509
+    method: GET
+    parameters:
+      - name: remote
+        value: bi1-julien/test/upload/newfile.java
+        description: ""
+        disabled: false
+      - name: expirationTime
+        value: "5"
+        description: ""
+        disabled: false
+        type: text
+        multiline: false
+    headers:
+      - name: User-Agent
+        value: insomnia/12.2.0
+        description: ""
+        disabled: false
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8080/api/v1/objects/download
+    name: Download
+    meta:
+      id: req_488fa97279ec4342a84d2d5698e78d55
+      created: 1767518620400
+      modified: 1767945390558
+      isPrivate: false
+      description: ""
+      sortKey: -1767516032459
+    method: GET
+    parameters:
+      - name: remote
+        value: bi1-julien/test/upload/newfile.java
+        description: ""
+        disabled: false
+    headers:
+      - name: User-Agent
+        value: insomnia/12.2.0
+        description: ""
+        disabled: false
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_9f1763e14b91bb08954f5892b61a5ad825524fab
+    created: 1767455678342
+    modified: 1767455678342
+environments:
+  name: Base Environment
+  meta:
+    id: env_9f1763e14b91bb08954f5892b61a5ad825524fab
+    created: 1767455678342
+    modified: 1767455678342
+    isPrivate: false
