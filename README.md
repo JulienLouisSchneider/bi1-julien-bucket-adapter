@@ -22,6 +22,9 @@ The application exposes a REST API. The current AWS and GCP implementations supp
 You must run the application (see Deployment section) in order to access the documentation at the following URL:  
 http://localhost:8081/swagger-ui/index.html
 
+Video of kanban :
+https://youtu.be/awYhGX692GE
+
 ### Prerequisites
 
 The following tools and dependencies are required:
