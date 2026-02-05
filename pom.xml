@@ -12,9 +12,11 @@
     <artifactId>bucket-adapter</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>bucket-adapter</name>
+    <!-- TODO NGY - What a description !!!! -->
     <description>Rendu pour la matière BI1</description>
     <url/>
     <licenses>
+        <!-- TODO NGY - missing info -->
         <license/>
     </licenses>
     <developers>

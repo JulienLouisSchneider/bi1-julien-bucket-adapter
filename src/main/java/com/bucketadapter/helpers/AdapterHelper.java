@@ -7,6 +7,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.google.cloud.storage.StorageException;
+//TODO NGY This component should not be coupled to any SDK.
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import java.util.Set;

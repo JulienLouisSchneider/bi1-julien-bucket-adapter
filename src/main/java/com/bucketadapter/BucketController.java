@@ -23,6 +23,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.List;
 
+//TODO NGY Update all French messages in English
+
 @RestController
 @RequestMapping("/api/v1/objects")
 public class BucketController {

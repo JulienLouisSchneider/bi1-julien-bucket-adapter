@@ -9,6 +9,7 @@ import java.util.Map;
 @Component
 public class BucketAdapterFactory {
 
+  //TODO NGY Avoid using field injection -> method injection
   @Autowired private Map<String, BucketAdapter> adapters;
 
   public BucketAdapter getAdapter() {
