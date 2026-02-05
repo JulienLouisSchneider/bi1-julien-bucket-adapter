@@ -26,6 +26,7 @@ import java.util.List;
 //TODO NGY Update all French messages in English
 
 @RestController
+//TODO NGY move api at server level
 @RequestMapping("/api/v1/objects")
 public class BucketController {
 
