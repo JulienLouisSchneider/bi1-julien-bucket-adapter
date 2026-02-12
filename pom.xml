@@ -15,8 +15,11 @@
     <description>Adaptateur S3 pour stockage objet (AWS/GCP)</description>
     <url/>
     <licenses>
-        <!-- TODO NGY - missing info -->
-        <license/>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/licenses/MIT</url>
+            <distribution>repo</distribution>
+        </license>
     </licenses>
     <developers>
         <developer/>
