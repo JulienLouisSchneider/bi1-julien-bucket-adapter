@@ -23,8 +23,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.List;
 
-//TODO NGY Update all French messages in English
-
 @RestController
 //TODO NGY move api at server level
 @RequestMapping("/api/v1/objects")
@@ -32,7 +30,8 @@ public class BucketController {
 
   @SuppressFBWarnings(
       value = "EI_EXPOSE_REP2",
-      justification = "BucketService est injecté par Spring (bean); le controller ne l’expose pas.")
+      justification =
+          "BucketService is injected by Spring (bean); the controller does not expose it.")
   private final BucketService bucketService;
 
   public BucketController(BucketService bucketService) {
@@ -40,14 +39,14 @@ public class BucketController {
   }
 
   @Operation(
-      summary = "Lister des objets",
+      summary = "List objects",
       description =
-          "Liste les objets sous le préfixe remote. Utiliser recursive=true pour inclure les sous-dossiers.")
+          "Lists objects under the remote prefix. Use recursive=true to include subfolders.")
   @ApiResponses({
-    @ApiResponse(responseCode = "200", description = "Liste retournée"),
-    @ApiResponse(responseCode = "400", description = "Chemin remote invalide"),
-    @ApiResponse(responseCode = "404", description = "Bucket/objet introuvable"),
-    @ApiResponse(responseCode = "500", description = "Erreur interne")
+    @ApiResponse(responseCode = "200", description = "List returned"),
+    @ApiResponse(responseCode = "400", description = "Invalid remote path"),
+    @ApiResponse(responseCode = "404", description = "Bucket/object not found"),
+    @ApiResponse(responseCode = "500", description = "Internal error")
   })
   @GetMapping(params = "remote")
   public List<String> list(
@@ -55,11 +54,11 @@ public class BucketController {
     return bucketService.list(remote, recursive);
   }
 
-  @Operation(summary = "Upload d’un objet")
+  @Operation(summary = "Upload an object")
   @ApiResponses({
-    @ApiResponse(responseCode = "201", description = "Objet créé"),
-    @ApiResponse(responseCode = "400", description = "Chemin remote invalide"),
-    @ApiResponse(responseCode = "404", description = "Bucket/objet introuvable")
+    @ApiResponse(responseCode = "201", description = "Object created"),
+    @ApiResponse(responseCode = "400", description = "Invalid remote path"),
+    @ApiResponse(responseCode = "404", description = "Bucket/object not found")
   })
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   @ResponseStatus(HttpStatus.CREATED)
@@ -72,14 +71,14 @@ public class BucketController {
   }
 
   @Operation(
-      summary = "Supprimer un objet",
+      summary = "Delete an object",
       description =
-          "Supprime l'objet ciblé par remote. Si remote pointe vers un préfixe, utiliser recursive=true.")
+          "Deletes the object targeted by remote. If remote points to a prefix, use recursive=true.")
   @ApiResponses({
-    @ApiResponse(responseCode = "204", description = "Objet supprimé"),
-    @ApiResponse(responseCode = "400", description = "Chemin remote invalide"),
-    @ApiResponse(responseCode = "404", description = "Bucket/objet introuvable"),
-    @ApiResponse(responseCode = "500", description = "Erreur interne")
+    @ApiResponse(responseCode = "204", description = "Object deleted"),
+    @ApiResponse(responseCode = "400", description = "Invalid remote path"),
+    @ApiResponse(responseCode = "404", description = "Bucket/object not found"),
+    @ApiResponse(responseCode = "500", description = "Internal error")
   })
   @DeleteMapping(params = "remote")
   @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -89,14 +88,14 @@ public class BucketController {
   }
 
   @Operation(
-      summary = "Partager un objet",
+      summary = "Share an object",
       description =
-          "Retourne une URL pré-signée pour l'objet remote, valable expirationTime secondes.")
+          "Returns a presigned URL for the remote object, valid for expirationTime seconds.")
   @ApiResponses({
-    @ApiResponse(responseCode = "200", description = "URL pré-signée retournée"),
-    @ApiResponse(responseCode = "400", description = "Chemin remote invalide"),
-    @ApiResponse(responseCode = "404", description = "Bucket/objet introuvable"),
-    @ApiResponse(responseCode = "500", description = "Erreur interne")
+    @ApiResponse(responseCode = "200", description = "Presigned URL returned"),
+    @ApiResponse(responseCode = "400", description = "Invalid remote path"),
+    @ApiResponse(responseCode = "404", description = "Bucket/object not found"),
+    @ApiResponse(responseCode = "500", description = "Internal error")
   })
   @GetMapping(
       value = "/share",
@@ -106,13 +105,13 @@ public class BucketController {
   }
 
   @Operation(
-      summary = "Télécharger un objet",
-      description = "Télécharge l'objet remote en binaire (application/octet-stream).")
+      summary = "Download an object",
+      description = "Downloads the remote object as binary (application/octet-stream).")
   @ApiResponses({
-    @ApiResponse(responseCode = "200", description = "Contenu binaire retourné"),
-    @ApiResponse(responseCode = "400", description = "Chemin remote invalide"),
-    @ApiResponse(responseCode = "404", description = "Bucket/objet introuvable"),
-    @ApiResponse(responseCode = "500", description = "Erreur interne")
+    @ApiResponse(responseCode = "200", description = "Binary content returned"),
+    @ApiResponse(responseCode = "400", description = "Invalid remote path"),
+    @ApiResponse(responseCode = "404", description = "Bucket/object not found"),
+    @ApiResponse(responseCode = "500", description = "Internal error")
   })
   @GetMapping(value = "/download", params = "remote")
   public ResponseEntity<byte[]> download(@RequestParam String remote) {
