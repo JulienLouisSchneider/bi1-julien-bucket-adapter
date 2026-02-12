@@ -14,7 +14,7 @@ public class BucketAdapterFactory {
 
   public BucketAdapterFactory(
       Map<String, BucketAdapter> adapters, @Value("${PROVIDER_IMPL}") String provider) {
-    this.adapters = adapters;
+    this.adapters = Map.copyOf(adapters);
     this.provider = provider;
   }
 
