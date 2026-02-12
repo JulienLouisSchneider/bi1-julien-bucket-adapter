@@ -5,10 +5,6 @@ import com.bucketadapter.bucketadapterexceptions.BucketOperationException;
 import com.bucketadapter.bucketadapterexceptions.InvalidBucketPathException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import com.google.cloud.storage.StorageException;
-import software.amazon.awssdk.services.s3.model.S3Exception;
-
 import java.util.Set;
 import software.amazon.awssdk.services.s3.model.DeleteObjectsResponse;
 
@@ -73,20 +69,6 @@ public final class AdapterHelper {
     }
   }
 
-  /** Mapping centralisé des erreurs S3 vers tes exceptions métier */
-  public static RuntimeException mapS3Exception(S3Exception e) {
-    int sc = e.statusCode();
-
-    if (sc == 404) {
-      return new BucketObjectNotFoundException("Resource not found.");
-    }
-    if (sc == 400) {
-      return new InvalidBucketPathException("Invalid path.");
-    }
-
-    return new BucketOperationException("Operation failed.", e);
-  }
-
   public static RemoteRef requireKeyOrPrefix(RemoteRef ref) {
     String kp = ref.keyOrPrefix();
     if (kp == null || kp.isBlank()) {
@@ -149,12 +131,5 @@ public final class AdapterHelper {
     throw new BucketOperationException(
         "Operation failed.",
         new IllegalStateException("Provider reported partial delete failure."));
-  }
-
-  public static RuntimeException mapGcsException(StorageException e) {
-    int code = e.getCode();
-    if (code == 404) return new BucketObjectNotFoundException("Resource not found.");
-    if (code == 400) return new InvalidBucketPathException("Invalid path.");
-    return new BucketOperationException("Operation failed.", e);
   }
 }

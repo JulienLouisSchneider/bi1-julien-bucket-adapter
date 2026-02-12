@@ -7,6 +7,7 @@ through a common interface and a Factory-based adapter selection.
 
 The application exposes a REST API. The current AWS and GCP implementations support:
 
+//TODO NGY files vs objects
 - uploading files
 - downloading files
 - updating existing files (overwrite)
@@ -20,6 +21,7 @@ The application exposes a REST API. The current AWS and GCP implementations supp
 ### Documentation
 
 You must run the application (see Deployment section) in order to access the documentation at the following URL:  
+//TODO NGY how to use the 8081 port ?
 http://localhost:8081/swagger-ui/index.html
 
 Video of kanban :
@@ -36,6 +38,7 @@ The following tools and dependencies are required:
     * OpenJDK Runtime Environment `(build 21.0.9)`
     * JVM compatible with Java 21
 
+//TODO NGY - Remove this part -> see pom.xml
 * **Frameworks & Libraries**
     * Spring Boot 4.0.1
     * Spring Framework 7.0.2
@@ -45,8 +48,10 @@ The following tools and dependencies are required:
     * Mockito
 
 * **Build & Dependency Management**
+//TODO NGY - really need the wrapper ?
     * Maven Wrapper (`./mvnw` or `mvn`)
 
+//TODO NGY - repetition
 * **IDE used**
     * IntelliJ `2025.3.1`
 
@@ -74,6 +79,7 @@ The application relies on external configuration to select the storage provider 
 
 Default application port (override if needed):
 
+//TODO NGY Typo
 ```bash
 SEREVER_PORT=8090
 ```
@@ -123,6 +129,7 @@ For next feature.
 
 #### Build the project
 
+//TODO NGY Much more than just a "build"
 ```bash
 mvn clean install
 ```
@@ -135,6 +142,7 @@ mvn test
 
 2. Check for coverage
 
+//TODO NGY Is it a joke ? You should give us the command line to generate the code coverage report.
 https://www.jetbrains.com/help/idea/code-coverage.html
 
 #### Run the application
@@ -173,6 +181,8 @@ docker compose up --build
 
 You can use Insomnia for commands. Import the Insomnia_2026-01-09.yaml file into your Insomnia application.
 
+//TODO NGY Everything is hard coded in the yaml file... reusability ?
+
 ##### Curl
 
 To use the API you can read this [documentation](docs/curl-route.md).
@@ -180,6 +190,7 @@ To use the API you can read this [documentation](docs/curl-route.md).
 **How to update the API documentation ?**
 
 To update the documentation, first you'll have to start run the project using **maven** or **docker** :
+//TODO NGY - then....
 
 ```bash
 # Maven
@@ -261,6 +272,8 @@ This project follows [Conventional Commits](https://www.conventionalcommits.org/
 
 Examples :
 
+//TODO NGY Exactly the same sample as by David ????
+
 ```bash
 feat: add GCP bucket adapter
 fix: handle S3 presigner exception
@@ -281,6 +294,7 @@ hotfix/fix-servor-error-on-s3-upload
 
 ## License
 
+//TODO NGY - You should add a real licence to your project
 * [Choose the license adapted to your project](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/licensing-a-repository).
 
 ## Contact

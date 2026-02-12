@@ -12,10 +12,14 @@
     <artifactId>bucket-adapter</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>bucket-adapter</name>
-    <description>Rendu pour la matière BI1</description>
+    <description>Adaptateur S3 pour stockage objet (AWS/GCP)</description>
     <url/>
     <licenses>
-        <license/>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/licenses/MIT</url>
+            <distribution>repo</distribution>
+        </license>
     </licenses>
     <developers>
         <developer/>
