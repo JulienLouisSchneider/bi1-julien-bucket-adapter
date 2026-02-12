@@ -24,7 +24,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 
 @RestController
-//TODO NGY move api at server level
+// TODO NGY move api at server level
 @RequestMapping("/api/v1/objects")
 public class BucketController {
 
