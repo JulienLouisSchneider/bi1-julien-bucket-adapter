@@ -50,7 +50,7 @@ public class GCPBucketAdapterImpl implements BucketAdapter {
       storage.create(info, object); // overwrite par défaut
 
     } catch (StorageException e) {
-      throw AdapterHelper.mapGcsException(e);
+      throw mapGcsException(e);
     } catch (RuntimeException e) {
       throw new BucketOperationException("Operation failed.", e);
     }
@@ -77,7 +77,7 @@ public class GCPBucketAdapterImpl implements BucketAdapter {
       return out.toByteArray();
 
     } catch (StorageException e) {
-      throw AdapterHelper.mapGcsException(e);
+      throw mapGcsException(e);
     } catch (Exception e) {
       throw new BucketOperationException("Operation failed.", e);
     }
@@ -101,7 +101,7 @@ public class GCPBucketAdapterImpl implements BucketAdapter {
         }
         return;
       } catch (com.google.cloud.storage.StorageException e) {
-        throw AdapterHelper.mapGcsException(e);
+        throw mapGcsException(e);
       } catch (RuntimeException e) {
         throw new BucketOperationException("Operation failed.", e);
       }
@@ -142,7 +142,7 @@ public class GCPBucketAdapterImpl implements BucketAdapter {
       }
 
     } catch (com.google.cloud.storage.StorageException e) {
-      throw AdapterHelper.mapGcsException(e);
+      throw mapGcsException(e);
     } catch (RuntimeException e) {
       throw new BucketOperationException("Operation failed.", e);
     }
@@ -178,7 +178,7 @@ public class GCPBucketAdapterImpl implements BucketAdapter {
       return new ArrayList<>(results);
 
     } catch (StorageException e) {
-      throw AdapterHelper.mapGcsException(e);
+      throw mapGcsException(e);
     } catch (RuntimeException e) {
       throw new BucketOperationException("Operation failed.", e);
     }
@@ -210,7 +210,7 @@ public class GCPBucketAdapterImpl implements BucketAdapter {
       return url.toString();
 
     } catch (StorageException e) {
-      throw AdapterHelper.mapGcsException(e);
+      throw mapGcsException(e);
     } catch (RuntimeException e) {
       throw new BucketOperationException("Operation failed.", e);
     }
@@ -244,5 +244,12 @@ public class GCPBucketAdapterImpl implements BucketAdapter {
     } catch (RuntimeException e) {
       throw new BucketOperationException("Operation failed.", e);
     }
+  }
+
+  public static RuntimeException mapGcsException(StorageException e) {
+    int code = e.getCode();
+    if (code == 404) return new BucketObjectNotFoundException("Resource not found.");
+    if (code == 400) return new InvalidBucketPathException("Invalid path.");
+    return new BucketOperationException("Operation failed.", e);
   }
 }

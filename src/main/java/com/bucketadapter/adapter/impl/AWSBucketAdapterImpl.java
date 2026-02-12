@@ -64,7 +64,7 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
       throw new BucketObjectNotFoundException("Resource not found.");
 
     } catch (S3Exception e) {
-      throw AdapterHelper.mapS3Exception(e);
+      throw mapS3Exception(e);
 
     } catch (SdkException e) {
       throw new BucketOperationException("Operation failed.", e);
@@ -85,7 +85,7 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
       throw new BucketObjectNotFoundException("Resource not found.");
 
     } catch (S3Exception e) {
-      throw AdapterHelper.mapS3Exception(e);
+      throw mapS3Exception(e);
 
     } catch (SdkException e) {
       throw new BucketOperationException("Operation failed.", e);
@@ -146,7 +146,7 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
       throw new BucketObjectNotFoundException("Resource not found.");
 
     } catch (S3Exception e) {
-      throw AdapterHelper.mapS3Exception(e);
+      throw mapS3Exception(e);
 
     } catch (SdkException e) {
       throw new BucketOperationException("Operation failed.", e);
@@ -179,7 +179,7 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
       throw new BucketObjectNotFoundException("Resource not found.");
 
     } catch (S3Exception e) {
-      throw AdapterHelper.mapS3Exception(e);
+      throw mapS3Exception(e);
 
     } catch (SdkException e) {
       throw new BucketOperationException("Operation failed.", e);
@@ -242,7 +242,7 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
 
     } catch (S3Exception e) {
 
-      throw AdapterHelper.mapS3Exception(e);
+      throw mapS3Exception(e);
 
     } catch (SdkException e) {
       throw new BucketOperationException("Operation failed.", e);
@@ -263,7 +263,7 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
       throw new BucketObjectNotFoundException("Resource not found.");
 
     } catch (S3Exception e) {
-      throw AdapterHelper.mapS3Exception(e);
+      throw mapS3Exception(e);
 
     } catch (SdkException e) {
       throw new BucketOperationException("Operation failed.", e);
@@ -292,7 +292,7 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
       throw new BucketObjectNotFoundException("Resource not found.");
 
     } catch (S3Exception e) {
-      throw AdapterHelper.mapS3Exception(e);
+      throw mapS3Exception(e);
 
     } catch (SdkException e) {
       throw new BucketOperationException("Operation failed.", e);
@@ -300,5 +300,19 @@ public class AWSBucketAdapterImpl implements BucketAdapter {
     } finally {
       batch.clear();
     }
+  }
+
+  /** Mapping centralisé des erreurs S3 vers tes exceptions métier */
+  public static RuntimeException mapS3Exception(S3Exception e) {
+    int sc = e.statusCode();
+
+    if (sc == 404) {
+      return new BucketObjectNotFoundException("Resource not found.");
+    }
+    if (sc == 400) {
+      return new InvalidBucketPathException("Invalid path.");
+    }
+
+    return new BucketOperationException("Operation failed.", e);
   }
 }
