@@ -7,22 +7,25 @@ through a common interface and a Factory-based adapter selection.
 
 The application exposes a REST API. The current AWS and GCP implementations support:
 
-//TODO NGY files vs objects
-- uploading files
-- downloading files
-- updating existing files (overwrite)
-- deleting files (single object or recursive prefix deletion)
-- listing bucket contents
-- checking whether an object exists
+- uploading objects (file content)
+- downloading objects
+- updating existing objects (overwrite)
+- deleting objects (single object or recursive prefix deletion)
+- listing bucket contents (objects and prefixes)
 - generating temporary shareable URLs (pre-signed URLs)
 
 ## Getting Started
 
 ### Documentation
 
-You must run the application (see Deployment section) in order to access the documentation at the following URL:  
-//TODO NGY how to use the 8081 port ?
-http://localhost:8081/swagger-ui/index.html
+You must run the application (see Deployment section) in order to access the documentation.
+The application runs under the `/api` context path (`server.servlet.context-path=/api`) and uses the
+port configured by `SEREVER_PORT`.
+
+Examples:
+
+- Local run with the sample `.env` (`SEREVER_PORT=8090`): `http://localhost:8090/api/swagger-ui/index.html`
+- Docker run without overriding the port (compose default): `http://localhost:8080/api/swagger-ui/index.html`
 
 Video of kanban :
 https://youtu.be/awYhGX692GE
@@ -38,22 +41,17 @@ The following tools and dependencies are required:
     * OpenJDK Runtime Environment `(build 21.0.9)`
     * JVM compatible with Java 21
 
-//TODO NGY - Remove this part -> see pom.xml
 * **Frameworks & Libraries**
-    * Spring Boot 4.0.1
-    * Spring Framework 7.0.2
+    * Main frameworks/libraries used by the project (see `pom.xml` for the exact versions)
+    * Spring Boot
+    * Spring Framework
     * AWS SDK v2 (S3, Presigner)
-    * GCP 26.37.0
+    * Google Cloud Storage SDK
     * JUnit 5
     * Mockito
 
 * **Build & Dependency Management**
-//TODO NGY - really need the wrapper ?
-    * Maven Wrapper (`./mvnw` or `mvn`)
-
-//TODO NGY - repetition
-* **IDE used**
-    * IntelliJ `2025.3.1`
+    * Maven (`mvn`) or Maven Wrapper (`./mvnw`, recommended for reproducible builds)
 
 * **Supported OS (tested)**
     * MacOS (`Tahoe 26.1`)
@@ -74,13 +72,13 @@ The following tools and dependencies are required:
 
 The application relies on external configuration to select the storage provider and access the bucket.
 
-1. Copy the `.env.example` file to a `.env` file using this command : `cp .env.example .env`.
+1. Copy the `.env.exemple` file to a `.env` file using this command : `cp .env.exemple .env`.
 2. Configure variables in `.env` file.
 
 Default application port (override if needed):
 
-//TODO NGY Typo
 ```bash
+# Note: the project currently uses SEREVER_PORT (typo kept in config/code)
 SEREVER_PORT=8090
 ```
 
@@ -129,7 +127,9 @@ For next feature.
 
 #### Build the project
 
-//TODO NGY Much more than just a "build"
+This command runs the full Maven lifecycle used by the project (compile, tests, packaging,
+Checkstyle, and SpotBugs):
+
 ```bash
 mvn clean install
 ```
@@ -140,10 +140,16 @@ mvn clean install
 mvn test
 ```
 
-2. Check for coverage
+2. Check code coverage (CLI)
 
-//TODO NGY Is it a joke ? You should give us the command line to generate the code coverage report.
-https://www.jetbrains.com/help/idea/code-coverage.html
+```bash
+mvn clean \
+  org.jacoco:jacoco-maven-plugin:0.8.12:prepare-agent \
+  test \
+  org.jacoco:jacoco-maven-plugin:0.8.12:report
+```
+
+Generated report: `target/site/jacoco/index.html`
 
 #### Run the application
 
@@ -180,8 +186,11 @@ docker compose up --build
 ##### Insomnia
 
 You can use Insomnia for commands. Import the Insomnia_2026-01-09.yaml file into your Insomnia application.
+The exported file contains sample values. For better reusability after import:
 
-//TODO NGY Everything is hard coded in the yaml file... reusability ?
+- create an Insomnia environment with variables such as `base_url`, `remote`, and `expirationTime`
+- update requests to use those variables instead of hard-coded values
+- adapt the host/port to your local configuration (`SEREVER_PORT`)
 
 ##### Curl
 
@@ -189,8 +198,7 @@ To use the API you can read this [documentation](docs/curl-route.md).
 
 **How to update the API documentation ?**
 
-To update the documentation, first you'll have to start run the project using **maven** or **docker** :
-//TODO NGY - then....
+To update/export the OpenAPI documentation, first run the project using **Maven** or **Docker**:
 
 ```bash
 # Maven
@@ -199,6 +207,15 @@ mvn spring-boot:run
 # Docker
 docker compose up --build
 ```
+
+Then export the OpenAPI definition (JSON) from the running application:
+
+```bash
+curl "http://localhost:${SEREVER_PORT:-8090}/api/v3/api-docs" -o docs/openapi.json
+```
+
+You can also open the interactive UI in your browser:
+`http://localhost:${SEREVER_PORT:-8090}/api/swagger-ui/index.html`
 
 ## Directory structure
 
@@ -272,8 +289,6 @@ This project follows [Conventional Commits](https://www.conventionalcommits.org/
 
 Examples :
 
-//TODO NGY Exactly the same sample as by David ????
-
 ```bash
 feat: add GCP bucket adapter
 fix: handle S3 presigner exception
@@ -294,8 +309,9 @@ hotfix/fix-servor-error-on-s3-upload
 
 ## License
 
-//TODO NGY - You should add a real licence to your project
-* [Choose the license adapted to your project](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/licensing-a-repository).
+This project is licensed under the **MIT License**.
+
+See the `LICENSE` file for the full text.
 
 ## Contact
 
