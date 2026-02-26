@@ -1,0 +1,13 @@
+services:
+  app:
+    build: .
+    image: bucket-adapter:latest
+    ports:
+      - "${SEREVER_PORT:-8080}:${SEREVER_PORT:-8080}"
+    env_file:
+      - .env
+    volumes:
+      - ./bi1-julien.json:/app/bi1-julien.json:ro
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: /app/bi1-julien.json
+      SEREVER_PORT: ${SEREVER_PORT:-8080}

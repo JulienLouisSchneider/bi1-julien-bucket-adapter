@@ -34,3 +34,13 @@ build/
 
 .env
 .ds_store
+AGENT.md
+bi1-julien.json
+
+target
+.idea
+*.iml
+.vscode
+.git
+.gitignore
+.DS_Store

@@ -1,0 +1,86 @@
+@startuml
+title BucketAdapter v6 (Refactor interface)
+
+class BucketController {
+
+}
+
+
+class BucketService {
+    + upload(...): ...
+    + download(...): ...
+    + delete(...): ...
+    + list(...): ...
+    + share(...): ...
+}
+
+class BucketAdapterFactory {
+    + getBucketAdapter(): IBucketAdapter
+}
+
+interface IBucketAdapter {
+    + upload(string:remote, object:byte[]):void
+    + download(string:local):byte[]
+    + delete(string:remote, bool:recursive=false):void
+    + list(string:remote, bool:recursive=false): string[]
+    + share(string:remote, int:expirationTime):string
+}
+
+class AZUREBucketAdapterImpl
+class GCPBucketAdapterImpl
+class AWSBucketAdapterImpl {
+    - awsClient: IAWSClient
+    + AWSBucketAdapterImpl(client: IAWSClient)
+}
+
+' ---- SDK ----
+package AWSSDK {
+    interface IAWSClient
+    class AWSClient
+}
+
+package GCPSDK {}
+package AZURESDK {}
+
+
+package BucketAdapterExceptions {
+    class BucketObjectNotFoundException {}
+    class BucketOperationException {}
+    class InvalidBucketPathException {}
+}
+
+package Helpers {
+    class AdapterHelper <<utility>>
+}
+
+' ---- Relationships ----
+
+BucketController --> BucketService
+BucketService --> BucketAdapterFactory
+BucketAdapterFactory --> IBucketAdapter
+
+
+IBucketAdapter <|.. AWSBucketAdapterImpl
+IBucketAdapter <|.. GCPBucketAdapterImpl
+IBucketAdapter <|.. AZUREBucketAdapterImpl
+
+' Dependency Injection instead of instantiation
+AWSBucketAdapterImpl --> IAWSClient : uses
+AWSClient ..|> IAWSClient
+
+AWSBucketAdapterImpl ..> AWSSDK
+GCPBucketAdapterImpl ..> GCPSDK
+AZUREBucketAdapterImpl ..> AZURESDK
+
+AWSBucketAdapterImpl ..> AdapterHelper : validation & mapping
+GCPBucketAdapterImpl ..> AdapterHelper : validation & mapping
+
+' ---- Test ----
+class TestAWSBucketAdapterImpl {
+    - mockAWSClient: IAWSClient
+}
+
+TestAWSBucketAdapterImpl --> AWSBucketAdapterImpl : injects
+TestAWSBucketAdapterImpl --> IAWSClient : creates mock
+
+@enduml
