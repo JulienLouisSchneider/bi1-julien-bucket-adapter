@@ -4,11 +4,13 @@ import com.bucketadapter.adapter.BucketAdapter;
 import com.bucketadapter.bucketadapterexceptions.BucketObjectNotFoundException;
 import com.bucketadapter.bucketadapterexceptions.BucketOperationException;
 import com.bucketadapter.bucketadapterexceptions.InvalidBucketPathException;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.core.sync.ResponseTransformer;
 import software.amazon.awssdk.services.s3.S3Client;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 import software.amazon.awssdk.services.s3.model.Delete;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;

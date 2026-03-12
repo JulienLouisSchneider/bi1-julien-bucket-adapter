@@ -4,6 +4,7 @@ import com.bucketadapter.adapter.BucketAdapter;
 import com.bucketadapter.bucketadapterexceptions.BucketObjectNotFoundException;
 import com.bucketadapter.bucketadapterexceptions.BucketOperationException;
 import com.bucketadapter.bucketadapterexceptions.InvalidBucketPathException;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import com.bucketadapter.helpers.AdapterHelper;
 import com.google.api.gax.paging.Page;
 import com.google.cloud.storage.Blob;
@@ -27,6 +28,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 @Component("GCP")
+@ConditionalOnProperty(name = "PROVIDER_IMPL", havingValue = "GCP")
 public class GCPBucketAdapterImpl implements BucketAdapter {
 
   @SuppressFBWarnings(
