@@ -1,5 +1,6 @@
 package com.bucketadapter;
 
+import com.bucketadapter.dto.UploadResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -60,10 +61,18 @@ public class BucketController {
     @ApiResponse(responseCode = "404", description = "Bucket/object not found")
   })
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  @ResponseStatus(HttpStatus.CREATED)
-  public void upload(@RequestParam String remote, @RequestPart("file") MultipartFile file) {
+  public ResponseEntity<UploadResponse> upload(
+      @RequestParam String remote,
+      @RequestParam(defaultValue = "3600") int expirationTime,
+      @RequestPart("file") MultipartFile file) {
     try {
       bucketService.upload(remote, file.getBytes());
+
+      String shareUrl = bucketService.share(remote, expirationTime);
+
+      UploadResponse response = new UploadResponse(remote, shareUrl, expirationTime);
+
+      return ResponseEntity.status(HttpStatus.CREATED).body(response);
     } catch (IOException e) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unable to read uploaded file", e);
     }
