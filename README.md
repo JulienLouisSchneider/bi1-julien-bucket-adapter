@@ -20,11 +20,11 @@ The application exposes a REST API. The current AWS and GCP implementations supp
 
 You must run the application (see Deployment section) in order to access the documentation.
 The application runs under the `/api` context path (`server.servlet.context-path=/api`) and uses the
-port configured by `SEREVER_PORT`.
+port configured by `SERVER_PORT`.
 
 Examples:
 
-- Local run with the sample `.env` (`SEREVER_PORT=8090`): `http://localhost:8090/api/swagger-ui/index.html`
+- Local run with the sample `.env` (`SERVER_PORT=8090`): `http://localhost:8090/api/swagger-ui/index.html`
 - Docker run without overriding the port (compose default): `http://localhost:8080/api/swagger-ui/index.html`
 
 Video of kanban :
@@ -78,8 +78,7 @@ The application relies on external configuration to select the storage provider 
 Default application port (override if needed):
 
 ```bash
-# Note: the project currently uses SEREVER_PORT (typo kept in config/code)
-SEREVER_PORT=8090
+SERVER_PORT=8090
 ```
 
 #### AWS configuration
@@ -190,7 +189,7 @@ The exported file contains sample values. For better reusability after import:
 
 - create an Insomnia environment with variables such as `base_url`, `remote`, and `expirationTime`
 - update requests to use those variables instead of hard-coded values
-- adapt the host/port to your local configuration (`SEREVER_PORT`)
+- adapt the host/port to your local configuration (`SERVER_PORT`)
 
 ##### Curl
 
@@ -211,11 +210,11 @@ docker compose up --build
 Then export the OpenAPI definition (JSON) from the running application:
 
 ```bash
-curl "http://localhost:${SEREVER_PORT:-8090}/api/v3/api-docs" -o docs/openapi.json
+curl "http://localhost:${SERVER_PORT:-8090}/api/v3/api-docs" -o docs/openapi.json
 ```
 
 You can also open the interactive UI in your browser:
-`http://localhost:${SEREVER_PORT:-8090}/api/swagger-ui/index.html`
+`http://localhost:${SERVER_PORT:-8090}/api/swagger-ui/index.html`
 
 ## Directory structure
 
